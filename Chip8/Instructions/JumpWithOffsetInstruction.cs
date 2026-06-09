@@ -17,13 +17,19 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+using Chip8.Common.Configurations;
+
 namespace Chip8.Instructions;
 
-internal record ClearScreenInstruction(Interpreter Interpreter, ushort OpCode)
+internal record JumpWithOffsetInstruction(Interpreter Interpreter, ushort OpCode)
     : BaseInstruction(Interpreter, OpCode)
 {
     public override void Execute() =>
-        Array.Clear(Interpreter.DisplayBuffer, 0, Interpreter.DisplayBuffer.Length);
+        Interpreter.ProgramCounter =
+            Interpreter.Options.Type is InterpreterType.Legacy
+                ? (ushort)(Nnn + Interpreter.V[0])
+                : (ushort)(Nnn + Interpreter.V[X]);
 
-    public override string ToString() => $"(0x{OpCode:X4})\tCLS";
+    public override string ToString() =>
+        $"(0x{OpCode:X4})\tJP V{(Interpreter.Options.Type is InterpreterType.Legacy ? 0 : X):X}, 0x{Nnn:X3}";
 }

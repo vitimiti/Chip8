@@ -19,9 +19,10 @@
 
 namespace Chip8.Instructions;
 
-internal record BinaryOrInstruction(ushort OpCode) : BaseInstruction(OpCode)
+internal record BinaryOrInstruction(Interpreter Interpreter, ushort OpCode)
+    : BaseInstruction(Interpreter, OpCode)
 {
-    public override void Execute(Interpreter interpreter) => interpreter.V[X] |= interpreter.V[Y];
+    public override void Execute() => Interpreter.V[X] |= Interpreter.V[Y];
 
     public override string ToString() => $"(0x{OpCode:X4})\tOR V{X:X}, V{Y:X}";
 }

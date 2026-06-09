@@ -21,17 +21,18 @@ using Chip8.Common.Configurations;
 
 namespace Chip8.Instructions;
 
-internal record ShiftLeftInstruction(ushort OpCode) : BaseInstruction(OpCode)
+internal record ShiftLeftInstruction(Interpreter Interpreter, ushort OpCode)
+    : BaseInstruction(Interpreter, OpCode)
 {
-    public override void Execute(Interpreter interpreter)
+    public override void Execute()
     {
-        if (interpreter.Options.Type is InterpreterType.Legacy)
+        if (Interpreter.Options.Type is InterpreterType.Legacy)
         {
-            interpreter.V[X] = interpreter.V[Y];
+            Interpreter.V[X] = Interpreter.V[Y];
         }
 
-        interpreter.V[X] <<= 1;
-        interpreter.V[0xF] = (byte)((interpreter.V[X] & 0x80) >> 7);
+        Interpreter.V[X] <<= 1;
+        Interpreter.V[0xF] = (byte)((Interpreter.V[X] & 0x80) >> 7);
     }
 
     public override string ToString() => $"(0x{OpCode:X4})\tSHL V{X:X}";

@@ -19,13 +19,14 @@
 
 namespace Chip8.Instructions;
 
-internal record SkipIfNotEqualInstruction(ushort OpCode) : BaseInstruction(OpCode)
+internal record SkipIfNotEqualInstruction(Interpreter Interpreter, ushort OpCode)
+    : BaseInstruction(Interpreter, OpCode)
 {
-    public override void Execute(Interpreter interpreter)
+    public override void Execute()
     {
-        if (interpreter.V[X] != Nn)
+        if (Interpreter.V[X] != Nn)
         {
-            interpreter.ProgramCounter += 2;
+            Interpreter.ProgramCounter += 2;
         }
     }
 

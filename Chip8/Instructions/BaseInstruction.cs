@@ -19,7 +19,7 @@
 
 namespace Chip8.Instructions;
 
-internal abstract record BaseInstruction(ushort OpCode)
+internal abstract record BaseInstruction(Interpreter Interpreter, ushort OpCode)
 {
     public ushort Nnn => (ushort)(OpCode & 0x0FFF);
 
@@ -31,5 +31,5 @@ internal abstract record BaseInstruction(ushort OpCode)
 
     public byte Y => (byte)((OpCode & 0x00F0) >> 4);
 
-    public abstract void Execute(Interpreter interpreter);
+    public abstract void Execute();
 }

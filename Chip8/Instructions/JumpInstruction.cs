@@ -19,9 +19,10 @@
 
 namespace Chip8.Instructions;
 
-internal record JumpInstruction(ushort OpCode) : BaseInstruction(OpCode)
+internal record JumpInstruction(Interpreter Interpreter, ushort OpCode)
+    : BaseInstruction(Interpreter, OpCode)
 {
-    public override void Execute(Interpreter interpreter) => interpreter.ProgramCounter = Nnn;
+    public override void Execute() => Interpreter.ProgramCounter = Nnn;
 
     public override string ToString() => $"(0x{OpCode:X4})\tJP 0x{Nnn:X3}";
 }

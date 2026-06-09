@@ -19,9 +19,10 @@
 
 namespace Chip8.Instructions;
 
-internal record SetIndexRegisterInstruction(ushort OpCode) : BaseInstruction(OpCode)
+internal record SetIndexRegisterInstruction(Interpreter Interpreter, ushort OpCode)
+    : BaseInstruction(Interpreter, OpCode)
 {
-    public override void Execute(Interpreter interpreter) => interpreter.I = Nnn;
+    public override void Execute() => Interpreter.I = Nnn;
 
     public override string ToString() => $"(0x{OpCode:X4})\tLD I, 0x{Nnn:X3}";
 }

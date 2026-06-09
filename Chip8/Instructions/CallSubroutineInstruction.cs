@@ -19,12 +19,13 @@
 
 namespace Chip8.Instructions;
 
-internal record CallSubroutineInstruction(ushort OpCode) : BaseInstruction(OpCode)
+internal record CallSubroutineInstruction(Interpreter Interpreter, ushort OpCode)
+    : BaseInstruction(Interpreter, OpCode)
 {
-    public override void Execute(Interpreter interpreter)
+    public override void Execute()
     {
-        interpreter.Stack.Push(interpreter.ProgramCounter);
-        interpreter.ProgramCounter = Nnn;
+        Interpreter.Stack.Push(Interpreter.ProgramCounter);
+        Interpreter.ProgramCounter = Nnn;
     }
 
     public override string ToString() => $"(0x{OpCode:X4})\tCALL 0x{Nnn:X3}";

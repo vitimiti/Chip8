@@ -19,13 +19,14 @@
 
 namespace Chip8.Instructions;
 
-internal record AddRegistersInstruction(ushort OpCode) : BaseInstruction(OpCode)
+internal record AddRegistersInstruction(Interpreter Interpreter, ushort OpCode)
+    : BaseInstruction(Interpreter, OpCode)
 {
-    public override void Execute(Interpreter interpreter)
+    public override void Execute()
     {
-        var sum = interpreter.V[X] + interpreter.V[Y];
-        interpreter.V[0xF] = (byte)(sum > 0xFF ? 1 : 0);
-        interpreter.V[X] = (byte)(sum & 0xFF);
+        var sum = Interpreter.V[X] + Interpreter.V[Y];
+        Interpreter.V[0xF] = (byte)(sum > 0xFF ? 1 : 0);
+        Interpreter.V[X] = (byte)(sum & 0xFF);
     }
 
     public override string ToString() => $"(0x{OpCode:X4})\tADD V{X:X}, V{Y:X}";

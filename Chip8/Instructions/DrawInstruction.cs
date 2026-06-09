@@ -19,30 +19,31 @@
 
 namespace Chip8.Instructions;
 
-internal record DrawInstruction(ushort OpCode) : BaseInstruction(OpCode)
+internal record DrawInstruction(Interpreter Interpreter, ushort OpCode)
+    : BaseInstruction(Interpreter, OpCode)
 {
-    public override void Execute(Interpreter interpreter)
+    public override void Execute()
     {
-        var x = interpreter.V[X] % 64;
-        var y = interpreter.V[Y] % 32;
+        var x = Interpreter.V[X] % 64;
+        var y = Interpreter.V[Y] % 32;
         var height = N;
 
-        interpreter.V[0xF] = 0;
+        Interpreter.V[0xF] = 0;
 
         for (var row = 0; row < height; row++)
         {
-            var spriteRow = interpreter.Memory.Span[(ushort)(interpreter.I + row)];
+            var spriteRow = Interpreter.Memory.Span[(ushort)(Interpreter.I + row)];
             for (var col = 0; col < 8; col++)
             {
                 if ((spriteRow & (0x80 >> col)) != 0)
                 {
                     var displayIndex = ((y + row) % 32 * 64) + ((x + col) % 64);
-                    if (interpreter.DisplayBuffer[displayIndex] == 1)
+                    if (Interpreter.DisplayBuffer[displayIndex] == 1)
                     {
-                        interpreter.V[0xF] = 1;
+                        Interpreter.V[0xF] = 1;
                     }
 
-                    interpreter.DisplayBuffer[displayIndex] ^= 1;
+                    Interpreter.DisplayBuffer[displayIndex] ^= 1;
                 }
             }
         }

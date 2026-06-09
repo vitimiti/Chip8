@@ -19,13 +19,14 @@
 
 namespace Chip8.Instructions;
 
-internal record SubtractYFromXInstruction(ushort OpCode) : BaseInstruction(OpCode)
+internal record SubtractYFromXInstruction(Interpreter Interpreter, ushort OpCode)
+    : BaseInstruction(Interpreter, OpCode)
 {
-    public override void Execute(Interpreter interpreter)
+    public override void Execute()
     {
-        var diff = interpreter.V[X] - interpreter.V[Y];
-        interpreter.V[0xF] = (byte)(interpreter.V[X] >= interpreter.V[Y] ? 1 : 0);
-        interpreter.V[X] = (byte)(diff & 0xFF);
+        var diff = Interpreter.V[X] - Interpreter.V[Y];
+        Interpreter.V[0xF] = (byte)(Interpreter.V[X] >= Interpreter.V[Y] ? 1 : 0);
+        Interpreter.V[X] = (byte)(diff & 0xFF);
     }
 
     public override string ToString() => $"(0x{OpCode:X4})\tSUB V{X:X}, V{Y:X}";

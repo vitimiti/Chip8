@@ -168,6 +168,8 @@ internal class Interpreter : IDisposable
         _nativeContext.Draw(gameTime, DisplayBuffer);
     }
 
+    private static void Execute(BaseInstruction instruction) => instruction.Execute();
+
     private ushort Fetch()
     {
         var opCode = BinaryPrimitives.ReadUInt16BigEndian(Memory.Span.Slice(ProgramCounter, 2));
@@ -181,41 +183,40 @@ internal class Interpreter : IDisposable
         {
             0x0000 => (opCode & 0x00FF) switch
             {
-                0x00E0 => new ClearScreenInstruction(opCode),
-                0x00EE => new ReturnFromSubroutineInstruction(opCode),
-                _ => new UnknownInstruction(_logger, opCode),
+                0x00E0 => new ClearScreenInstruction(this, opCode),
+                0x00EE => new ReturnFromSubroutineInstruction(this, opCode),
+                _ => new UnknownInstruction(_logger, this, opCode),
             },
-            0x1000 => new JumpInstruction(opCode),
-            0x2000 => new CallSubroutineInstruction(opCode),
-            0x3000 => new SkipIfEqualInstruction(opCode),
-            0x4000 => new SkipIfNotEqualInstruction(opCode),
-            0x5000 => new SkipIfRegistersEqualInstruction(opCode),
-            0x6000 => new SetRegisterInstruction(opCode),
-            0x7000 => new AddValueToRegisterInstruction(opCode),
+            0x1000 => new JumpInstruction(this, opCode),
+            0x2000 => new CallSubroutineInstruction(this, opCode),
+            0x3000 => new SkipIfEqualInstruction(this, opCode),
+            0x4000 => new SkipIfNotEqualInstruction(this, opCode),
+            0x5000 => new SkipIfRegistersEqualInstruction(this, opCode),
+            0x6000 => new SetRegisterInstruction(this, opCode),
+            0x7000 => new AddValueToRegisterInstruction(this, opCode),
             0x8000 => (opCode & 0x000F) switch
             {
-                0x0000 => new SetRegisterToRegisterInstruction(opCode),
-                0x0001 => new BinaryOrInstruction(opCode),
-                0x0002 => new BinaryAndInstruction(opCode),
-                0x0003 => new BinaryXorInstruction(opCode),
-                0x0004 => new AddRegistersInstruction(opCode),
-                0x0005 => new SubtractYFromXInstruction(opCode),
-                0x0006 => new ShiftRightInstruction(opCode),
-                0x0007 => new SubtractXFromYInstruction(opCode),
-                0x000E => new ShiftLeftInstruction(opCode),
-                _ => new UnknownInstruction(_logger, opCode),
+                0x0000 => new SetRegisterToRegisterInstruction(this, opCode),
+                0x0001 => new BinaryOrInstruction(this, opCode),
+                0x0002 => new BinaryAndInstruction(this, opCode),
+                0x0003 => new BinaryXorInstruction(this, opCode),
+                0x0004 => new AddRegistersInstruction(this, opCode),
+                0x0005 => new SubtractYFromXInstruction(this, opCode),
+                0x0006 => new ShiftRightInstruction(this, opCode),
+                0x0007 => new SubtractXFromYInstruction(this, opCode),
+                0x000E => new ShiftLeftInstruction(this, opCode),
+                _ => new UnknownInstruction(_logger, this, opCode),
             },
-            0x9000 => new SkipIfRegistersNotEqualInstruction(opCode),
-            0xA000 => new SetIndexRegisterInstruction(opCode),
-            0xD000 => new DrawInstruction(opCode),
-            _ => new UnknownInstruction(_logger, opCode),
+            0x9000 => new SkipIfRegistersNotEqualInstruction(this, opCode),
+            0xA000 => new SetIndexRegisterInstruction(this, opCode),
+            0xB000 => new JumpWithOffsetInstruction(this, opCode),
+            0xD000 => new DrawInstruction(this, opCode),
+            _ => new UnknownInstruction(_logger, this, opCode),
         };
 
         InstructionLogging.ExecutingInstruction(_logger, ProgramCounter, instruction);
         return instruction;
     }
-
-    private void Execute(BaseInstruction instruction) => instruction.Execute(this);
 
     private void UpdateTimers(GameTime gameTime)
     {

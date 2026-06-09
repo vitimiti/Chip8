@@ -19,18 +19,19 @@
 
 namespace Chip8.Instructions;
 
-internal record ReturnFromSubroutineInstruction(ushort OpCode) : BaseInstruction(OpCode)
+internal record ReturnFromSubroutineInstruction(Interpreter Interpreter, ushort OpCode)
+    : BaseInstruction(Interpreter, OpCode)
 {
-    public override void Execute(Interpreter interpreter)
+    public override void Execute()
     {
-        if (interpreter.Stack.Count == 0)
+        if (Interpreter.Stack.Count == 0)
         {
             throw new InvalidOperationException(
                 "Stack underflow: cannot return from subroutine because the stack is empty."
             );
         }
 
-        interpreter.ProgramCounter = interpreter.Stack.Pop();
+        Interpreter.ProgramCounter = Interpreter.Stack.Pop();
     }
 
     public override string ToString() => $"(0x{OpCode:X4})\tRET";

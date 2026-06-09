@@ -22,10 +22,11 @@ using Microsoft.Extensions.Logging;
 
 namespace Chip8.Instructions;
 
-internal record UnknownInstruction(ILogger Logger, ushort OpCode) : BaseInstruction(OpCode)
+internal record UnknownInstruction(ILogger Logger, Interpreter Interpreter, ushort OpCode)
+    : BaseInstruction(Interpreter, OpCode)
 {
-    public override void Execute(Interpreter interpreter) =>
-        InstructionLogging.UnknownInstruction(Logger, interpreter.ProgramCounter, this);
+    public override void Execute() =>
+        InstructionLogging.UnknownInstruction(Logger, Interpreter.ProgramCounter, this);
 
     public override string ToString() => $"(0x{OpCode:X4})\tUNKNOWN";
 }
