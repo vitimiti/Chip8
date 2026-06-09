@@ -103,7 +103,7 @@ public class RomSelector : IRomSelector
             }
 
             var files = new List<string?>();
-            for (var i = 0; fileList[i] != null; i++)
+            for (var i = 0; fileList[i] is not null; i++)
             {
                 var filePath = Utf8StringMarshaller.ConvertToManaged(fileList[i]);
                 files.Add(filePath);
