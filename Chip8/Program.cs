@@ -48,7 +48,9 @@ var services = new ServiceCollection()
         var logger = factory.GetRequiredService<ILogger<SdlNativeContext>>();
         var display =
             factory.GetRequiredService<INativeDisplay>() as SdlNativeDisplay
-            ?? throw new InvalidOperationException("Failed to resolve SdlNativeDisplay.");
+            ?? throw new InvalidOperationException(
+                $"Failed to resolve {nameof(SdlNativeDisplay)}."
+            );
         return new SdlNativeContext(logger, display);
     })
     .AddSingleton<Interpreter>()
