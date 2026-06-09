@@ -42,7 +42,15 @@ var services = new ServiceCollection()
             options.TimestampFormat = "[yyyy-MM-dd HH:mm:ss.fff] ";
         });
     })
-    .AddSingleton<INativeContext, SdlNativeContext>()
+    .AddTransient<INativeDisplay, SdlNativeDisplay>()
+    .AddTransient<INativeContext, SdlNativeContext>(factory =>
+    {
+        var logger = factory.GetRequiredService<ILogger<SdlNativeContext>>();
+        var display =
+            factory.GetRequiredService<INativeDisplay>() as SdlNativeDisplay
+            ?? throw new InvalidOperationException("Failed to resolve SdlNativeDisplay.");
+        return new SdlNativeContext(logger, display);
+    })
     .AddSingleton<Interpreter>()
     .BuildServiceProvider();
 

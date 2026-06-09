@@ -17,19 +17,11 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-using Chip8.Common;
+using Chip8.Common.Events;
 
 namespace Chip8.Abstractions;
 
-public interface INativeDisplay : IDisposable
+public interface IRomSelector
 {
-    bool RomSelected { get; }
-
-    string? SelectedRomPath { get; }
-
-    void Initialize();
-
-    void Update(GameTime gameTime);
-
-    void Draw(GameTime gameTime);
+    event EventHandler<RomSelectedEventArgs>? RomSelected;
 }

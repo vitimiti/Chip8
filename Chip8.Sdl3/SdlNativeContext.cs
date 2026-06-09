@@ -36,15 +36,23 @@ public class SdlNativeContext : INativeContext
     private SdlNativeDisplay? _display;
     private bool _disposedValue;
 
-    public SdlNativeContext(ILogger<SdlNativeContext> logger)
+    public SdlNativeContext(ILogger<SdlNativeContext> logger, SdlNativeDisplay display)
     {
         ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(display);
+
         _logger = logger;
+        _display = display;
     }
 
     [MemberNotNull(nameof(_logObject), nameof(_display))]
     public void Initialize()
     {
+        if (_display is null)
+        {
+            throw new InvalidOperationException("Display is not initialized.");
+        }
+
         SDL_SetMainReady();
         _logObject = new SafeLogObject(_logger);
         if (!SDL_SetAppMetadata("CHIP-8 Interpreter", "0.1.0", "io.github.vitimiti.chip8"))
@@ -59,7 +67,6 @@ public class SdlNativeContext : INativeContext
             throw new InvalidOperationException($"Failed to initialize SDL: {SDL_GetError()}.");
         }
 
-        _display = new SdlNativeDisplay();
         _display.Initialize();
     }
 

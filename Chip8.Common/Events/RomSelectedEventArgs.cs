@@ -17,19 +17,9 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-using Chip8.Common;
+namespace Chip8.Common.Events;
 
-namespace Chip8.Abstractions;
-
-public interface INativeDisplay : IDisposable
+public sealed class RomSelectedEventArgs(string romPath) : EventArgs
 {
-    bool RomSelected { get; }
-
-    string? SelectedRomPath { get; }
-
-    void Initialize();
-
-    void Update(GameTime gameTime);
-
-    void Draw(GameTime gameTime);
+    public string RomPath { get; } = romPath;
 }

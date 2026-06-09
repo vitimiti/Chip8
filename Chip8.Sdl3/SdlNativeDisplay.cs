@@ -20,15 +20,25 @@
 using System.Diagnostics.CodeAnalysis;
 using Chip8.Abstractions;
 using Chip8.Common;
+using Chip8.Sdl3.Logging;
+using Microsoft.Extensions.Logging;
 using static Chip8.Sdl3.NativeImports.Ffi;
 
 namespace Chip8.Sdl3;
 
-public class SdlNativeDisplay : INativeDisplay
+public class SdlNativeDisplay(ILogger<SdlNativeDisplay> logger) : INativeDisplay
 {
+    private readonly RomSelector _romSelector = new();
+    private readonly ILogger<SdlNativeDisplay> _logger = logger;
+
     private SDL_Window? _window;
     private SDL_Renderer? _renderer;
+    private bool _romSelectorShown;
     private bool _disposedValue;
+
+    public bool RomSelected { get; private set; }
+
+    public string? SelectedRomPath { get; private set; }
 
     [MemberNotNull(nameof(_window), nameof(_renderer))]
     public void Initialize()
@@ -71,6 +81,23 @@ public class SdlNativeDisplay : INativeDisplay
             throw new InvalidOperationException("SDL renderer is not initialized.");
         }
 
+        if (!RomSelected && !_romSelectorShown)
+        {
+            if (_window is null)
+            {
+                throw new InvalidOperationException("SDL window is not initialized.");
+            }
+
+            _romSelectorShown = true;
+            _romSelector.Show(_window);
+            _romSelector.RomSelected += (_, args) =>
+            {
+                RomSelected = true;
+                SelectedRomPath = args.RomPath;
+                GeneralLog.SelectedRom(_logger, args.RomPath);
+            };
+        }
+
         if (!SDL_RenderClear(_renderer))
         {
             throw new InvalidOperationException($"Failed to clear SDL renderer: {SDL_GetError()}.");
@@ -82,6 +109,11 @@ public class SdlNativeDisplay : INativeDisplay
         if (_renderer is null)
         {
             throw new InvalidOperationException("SDL renderer is not initialized.");
+        }
+
+        if (!RomSelected)
+        {
+            return;
         }
 
         if (!SDL_RenderPresent(_renderer))

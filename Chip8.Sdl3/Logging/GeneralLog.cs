@@ -17,19 +17,16 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-using Chip8.Common;
+using Microsoft.Extensions.Logging;
 
-namespace Chip8.Abstractions;
+namespace Chip8.Sdl3.Logging;
 
-public interface INativeDisplay : IDisposable
+internal static partial class GeneralLog
 {
-    bool RomSelected { get; }
-
-    string? SelectedRomPath { get; }
-
-    void Initialize();
-
-    void Update(GameTime gameTime);
-
-    void Draw(GameTime gameTime);
+    [LoggerMessage(
+        EventId = 8000,
+        Level = LogLevel.Information,
+        Message = "Selected ROM: {RomPath}"
+    )]
+    public static partial void SelectedRom(ILogger logger, string romPath);
 }

@@ -41,7 +41,82 @@ internal static unsafe partial class Ffi
             Utf8StringMarshaller.ConvertToManaged(unmanaged);
     }
 
+    [CustomMarshaller(
+        typeof(SDL_DialogFileFilter),
+        MarshalMode.ElementIn,
+        typeof(DialogFilterMarshaller.ElementIn)
+    )]
+    private static class DialogFilterMarshaller
+    {
+        public static class ElementIn
+        {
+            public static SDL_DialogFileFilterUnmanaged ConvertToUnmanaged(
+                SDL_DialogFileFilter managed
+            ) =>
+                new()
+                {
+                    Name = Utf8StringMarshaller.ConvertToUnmanaged(managed.Name),
+                    Pattern = Utf8StringMarshaller.ConvertToUnmanaged(managed.Pattern),
+                };
+
+            [SuppressMessage(
+                "csharpsquid",
+                "S1144:Unused private types or members should be removed",
+                Justification = "Required by the marshalling system."
+            )]
+            public static SDL_DialogFileFilter ConvertToManaged(
+                SDL_DialogFileFilterUnmanaged unmanaged
+            ) =>
+                new()
+                {
+                    Name = Utf8StringMarshaller.ConvertToManaged(unmanaged.Name),
+                    Pattern = Utf8StringMarshaller.ConvertToManaged(unmanaged.Pattern),
+                };
+
+            public static void Free(SDL_DialogFileFilterUnmanaged unmanaged)
+            {
+                Utf8StringMarshaller.Free(unmanaged.Name);
+                Utf8StringMarshaller.Free(unmanaged.Pattern);
+            }
+        }
+    }
+
     #endregion // Marshallers
+
+    #region SDL_dialog.h
+
+    [NativeMarshalling(typeof(DialogFilterMarshaller))]
+    public struct SDL_DialogFileFilter
+    {
+        public string? Name;
+        public string? Pattern;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct SDL_DialogFileFilterUnmanaged
+    {
+        public byte* Name;
+        public byte* Pattern;
+    }
+
+    [LibraryImport(LibSdl3, StringMarshalling = StringMarshalling.Utf8)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void SDL_ShowOpenFileDialog(
+        delegate* unmanaged[Cdecl]<void*, byte**, int, void> callback,
+        void* userData,
+        SDL_Window window,
+        [In]
+        [MarshalUsing(
+            typeof(ArrayMarshaller<SDL_DialogFileFilter, SDL_DialogFileFilterUnmanaged>),
+            CountElementName = nameof(nFilters)
+        )]
+            SDL_DialogFileFilter[] filters,
+        int nFilters,
+        string? defaultLocation,
+        [MarshalAs(UnmanagedType.I1)] bool allowMany
+    );
+
+    #endregion // SDL_dialog.h
 
     #region SDL_error.h
 
