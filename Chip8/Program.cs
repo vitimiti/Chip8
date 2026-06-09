@@ -30,7 +30,7 @@ var configuration = new ConfigurationBuilder()
     .AddJsonFile("appsettings.Internal.json", optional: true, reloadOnChange: true)
     .Build();
 
-var services = new ServiceCollection()
+using var services = new ServiceCollection()
     .AddSingleton<IConfiguration>(configuration)
     .AddLogging(builder =>
     {
