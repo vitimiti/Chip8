@@ -9,4 +9,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Chip8.Abstractions\Chip8.Abstractions.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.8" />
+  </ItemGroup>
 </Project>
