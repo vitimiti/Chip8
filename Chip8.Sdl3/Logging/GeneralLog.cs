@@ -29,4 +29,21 @@ internal static partial class GeneralLog
         Message = "Selected ROM: {RomPath}"
     )]
     public static partial void SelectedRom(ILogger logger, string romPath);
+
+    [LoggerMessage(EventId = 8001, Level = LogLevel.Information, Message = "Quit requested.")]
+    public static partial void QuitRequested(ILogger logger);
+
+    [LoggerMessage(
+        EventId = 8002,
+        Level = LogLevel.Critical,
+        Message = "Unhandled exception detected."
+    )]
+    public static partial void UnhandledException(ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = 8003,
+        Level = LogLevel.Critical,
+        Message = "Unhandled non-exception object detected: {Obj}"
+    )]
+    public static partial void UnhandledNonException(ILogger logger, object obj);
 }

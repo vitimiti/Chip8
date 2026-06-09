@@ -326,6 +326,24 @@ internal static unsafe partial class Ffi
 
     #endregion // SDL_main.h
 
+    #region SDL_messagebox.h
+
+    public readonly record struct SDL_MessageBoxFlags(uint Value);
+
+    public static SDL_MessageBoxFlags SDL_MESSAGEBOX_ERROR => new(0x0000_0010U);
+
+    [LibraryImport(LibSdl3, StringMarshalling = StringMarshalling.Utf8)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool SDL_ShowSimpleMessageBox(
+        SDL_MessageBoxFlags flags,
+        string title,
+        string message,
+        nint window
+    );
+
+    #endregion // SDL_messagebox.h
+
     #region SDL_render.h
 
     public readonly record struct SDL_RendererLogicalPresentation(int Value);

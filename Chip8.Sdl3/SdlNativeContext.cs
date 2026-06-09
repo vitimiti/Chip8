@@ -21,6 +21,7 @@ using System.Diagnostics.CodeAnalysis;
 using Chip8.Abstractions;
 using Chip8.Common;
 using Chip8.Common.Events;
+using Chip8.Sdl3.Logging;
 using Microsoft.Extensions.Logging;
 using static Chip8.Sdl3.NativeImports.Ffi;
 
@@ -48,6 +49,37 @@ public class SdlNativeContext : INativeContext
     [MemberNotNull(nameof(_logObject), nameof(_display))]
     public void Initialize()
     {
+        AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
+        {
+            try
+            {
+                if (e.ExceptionObject is Exception ex)
+                {
+                    GeneralLog.UnhandledException(_logger, ex);
+                    _ = SDL_ShowSimpleMessageBox(
+                        SDL_MESSAGEBOX_ERROR,
+                        "Unhandled Exception",
+                        $"An unhandled exception occurred: {ex}",
+                        0
+                    );
+                }
+                else
+                {
+                    GeneralLog.UnhandledNonException(_logger, e.ExceptionObject);
+                    _ = SDL_ShowSimpleMessageBox(
+                        SDL_MESSAGEBOX_ERROR,
+                        "Unhandled Exception",
+                        "An unhandled non-exception object was thrown.",
+                        0
+                    );
+                }
+            }
+            catch
+            {
+                // Ignored
+            }
+        };
+
         if (_display is null)
         {
             throw new InvalidOperationException("Display is not initialized.");
