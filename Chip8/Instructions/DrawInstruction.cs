@@ -32,26 +32,29 @@ internal record DrawInstruction(Interpreter Interpreter, ushort OpCode)
                 ? new Size(64, 32)
                 : new Size(128, 64);
 
-        // Start coordinates wrap to the display size.
-        var (x, y, height) = CalculateCoordinates(displaySize);
-        RowLoop(displaySize, x, y, height);
+        var drawSchip16x16 = Interpreter.Options.Type is InterpreterType.SuperChip && N == 0;
+        var spriteWidth = drawSchip16x16 ? 16 : 8;
+        var spriteHeight = drawSchip16x16 ? 16 : N;
 
         Interpreter.V[0xF] = 0;
+
+        // Start coordinates wrap to the display size.
+        var (x, y) = CalculateCoordinates(displaySize);
+        RowLoop(displaySize, x, y, spriteWidth, spriteHeight, drawSchip16x16);
     }
 
     public override string ToString() => $"(0x{OpCode:X4})\tDRW V{X:X}, V{Y:X}, 0x{N:X}";
 
-    private (int X, int Y, int Height) CalculateCoordinates(Size displaySize)
+    private (int X, int Y) CalculateCoordinates(Size displaySize)
     {
         var x = Interpreter.V[X] & (displaySize.Width - 1);
         var y = Interpreter.V[Y] & (displaySize.Height - 1);
-        var height = N;
-        return (x, y, height);
+        return (x, y);
     }
 
-    private void ColumnLoop(Size displaySize, int x, int spriteRow, int screenY)
+    private void ColumnLoop(Size displaySize, int x, int spriteWidth, int spriteRow, int screenY)
     {
-        for (var col = 0; col < 8; col++)
+        for (var col = 0; col < spriteWidth; col++)
         {
             var screenX = x + col;
             if (screenX >= displaySize.Width)
@@ -59,7 +62,8 @@ internal record DrawInstruction(Interpreter Interpreter, ushort OpCode)
                 break;
             }
 
-            if ((spriteRow & (0x80 >> col)) != 0)
+            var spriteMask = 1 << (spriteWidth - 1 - col);
+            if ((spriteRow & spriteMask) != 0)
             {
                 var displayIndex = (screenY * displaySize.Width) + screenX;
                 if (Interpreter.DisplayBuffer[displayIndex] == 1)
@@ -72,9 +76,16 @@ internal record DrawInstruction(Interpreter Interpreter, ushort OpCode)
         }
     }
 
-    private void RowLoop(Size displaySize, int x, int y, int height)
+    private void RowLoop(
+        Size displaySize,
+        int x,
+        int y,
+        int spriteWidth,
+        int spriteHeight,
+        bool drawSchip16x16
+    )
     {
-        for (var row = 0; row < height; row++)
+        for (var row = 0; row < spriteHeight; row++)
         {
             var screenY = y + row;
             if (screenY >= displaySize.Height)
@@ -82,8 +93,12 @@ internal record DrawInstruction(Interpreter Interpreter, ushort OpCode)
                 break;
             }
 
-            var spriteRow = Interpreter.Memory.Span[(ushort)(Interpreter.I + row)];
-            ColumnLoop(displaySize, x, spriteRow, screenY);
+            var spriteRow = drawSchip16x16
+                ? (Interpreter.Memory.Span[(ushort)(Interpreter.I + (row * 2))] << 8)
+                    | Interpreter.Memory.Span[(ushort)(Interpreter.I + (row * 2) + 1)]
+                : Interpreter.Memory.Span[(ushort)(Interpreter.I + row)];
+
+            ColumnLoop(displaySize, x, spriteWidth, spriteRow, screenY);
         }
     }
 }
