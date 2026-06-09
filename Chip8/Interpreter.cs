@@ -210,6 +210,7 @@ internal class Interpreter : IDisposable
             0x9000 => new SkipIfRegistersNotEqualInstruction(this, opCode),
             0xA000 => new SetIndexRegisterInstruction(this, opCode),
             0xB000 => new JumpWithOffsetInstruction(this, opCode),
+            0xC000 => new RandomInstruction(this, opCode),
             0xD000 => new DrawInstruction(this, opCode),
             _ => new UnknownInstruction(_logger, this, opCode),
         };
