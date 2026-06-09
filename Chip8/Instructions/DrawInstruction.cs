@@ -17,20 +17,36 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-using Chip8.Common;
-using Chip8.Common.Events;
+namespace Chip8.Instructions;
 
-namespace Chip8.Abstractions;
-
-public interface INativeContext : IDisposable
+internal record DrawInstruction(ushort OpCode) : BaseInstruction(OpCode)
 {
-    event EventHandler<QuitEventArgs>? QuitRequested;
+    public override void Execute(Interpreter interpreter)
+    {
+        var x = interpreter.V[X] % 64;
+        var y = interpreter.V[Y] % 32;
+        var height = N;
 
-    INativeDisplay? Display { get; }
+        interpreter.V[0xF] = 0;
 
-    void Initialize();
+        for (var row = 0; row < height; row++)
+        {
+            var spriteRow = interpreter.Memory.Span[(ushort)(interpreter.I + row)];
+            for (var col = 0; col < 8; col++)
+            {
+                if ((spriteRow & (0x80 >> col)) != 0)
+                {
+                    var displayIndex = ((y + row) % 32 * 64) + ((x + col) % 64);
+                    if (interpreter.DisplayBuffer[displayIndex] == 1)
+                    {
+                        interpreter.V[0xF] = 1;
+                    }
 
-    void Update(GameTime gameTime);
+                    interpreter.DisplayBuffer[displayIndex] ^= 1;
+                }
+            }
+        }
+    }
 
-    void Draw(GameTime gameTime, byte[] displayBuffer);
+    public override string ToString() => $"(0x{OpCode:X4})\tDRW V{X:X}, V{Y:X}, 0x{N:X}";
 }

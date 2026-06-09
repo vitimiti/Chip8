@@ -17,27 +17,73 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
 using Chip8.Abstractions;
 using Chip8.Common;
+using Chip8.Instructions;
+using Chip8.Logging;
+using Microsoft.Extensions.Logging;
 
 namespace Chip8;
 
-internal class Interpreter(INativeContext nativeContext) : IDisposable
+internal class Interpreter(ILogger<Interpreter> logger, INativeContext nativeContext) : IDisposable
 {
+    private static readonly TimeSpan TimerTick = TimeSpan.FromSeconds(1.0 / 60.0);
+
+    // csharpier-ignore
+    private static readonly byte[] Font = [
+        0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+        0x20, 0x60, 0x20, 0x20, 0x70, // 1
+        0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
+        0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
+        0x90, 0x90, 0xF0, 0x10, 0x10, // 4
+        0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
+        0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
+        0xF0, 0x10, 0x20, 0x40, 0x40, // 7
+        0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
+        0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
+        0xF0, 0x90, 0xF0, 0x90, 0x90, // A
+        0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
+        0xF0, 0x80, 0x80, 0x80, 0xF0, // C
+        0xE0, 0x90, 0x90, 0x90, 0xE0, // D
+        0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
+        0xF0, 0x80, 0xF0, 0x80, 0x80  // F
+    ];
+
+    private readonly ILogger<Interpreter> _logger = logger;
+    private readonly Stack<ushort> _stack = new(16);
+
     private GameTime? _gameTime;
     private INativeContext? _nativeContext;
-
+    private byte _delayTimer;
+    private byte _soundTimer;
     private bool _running;
+    private bool _romLoaded;
+    private TimeSpan _timerAccumulator;
     private bool _disposedValue;
+
+    internal Memory<byte> Memory { get; } = new byte[4096];
+
+    internal ushort ProgramCounter { get; set; } = 0x0200;
+
+    internal byte[] DisplayBuffer { get; } = new byte[64 * 32];
+
+    internal byte[] V { get; } = new byte[16];
+
+    internal ushort I { get; set; }
 
     public void Run()
     {
         Initialize();
+
+        var gameTime =
+            _gameTime ?? throw new InvalidOperationException("Game time is not initialized.");
         while (_running)
         {
-            Update(_gameTime);
-            Draw(_gameTime);
+            gameTime.Update();
+            Update(gameTime);
+            Draw(gameTime);
         }
     }
 
@@ -49,11 +95,108 @@ internal class Interpreter(INativeContext nativeContext) : IDisposable
         _nativeContext = nativeContext;
         _nativeContext.Initialize();
         _nativeContext.QuitRequested += (_, _) => _running = false;
+        Font.CopyTo(Memory.Span[0x0050..]);
     }
 
-    private void Update(GameTime gameTime) => _nativeContext?.Update(gameTime);
+    private void Update(GameTime gameTime)
+    {
+        if (_nativeContext is null)
+        {
+            throw new InvalidOperationException("Native context is not initialized.");
+        }
 
-    public void Draw(GameTime gameTime) => _nativeContext?.Draw(gameTime);
+        _nativeContext.Update(gameTime);
+        if (_nativeContext.Display is null)
+        {
+            throw new InvalidOperationException("Native display is not initialized.");
+        }
+
+        if (!_nativeContext.Display.RomSelected)
+        {
+            return;
+        }
+        else if (!_romLoaded)
+        {
+            var romPath =
+                _nativeContext.Display.SelectedRomPath
+                ?? throw new InvalidOperationException("ROM path is null.");
+
+            var romBytes = File.ReadAllBytes(romPath);
+            if (romBytes.Length > Memory.Length - 0x0200)
+            {
+                throw new InvalidOperationException("ROM size exceeds available memory.");
+            }
+
+            romBytes.CopyTo(Memory.Span[0x0200..]);
+            _romLoaded = true;
+            CommonLogging.LoadedRom(_logger, romPath);
+        }
+
+        UpdateTimers(gameTime);
+
+        // From right to left: Fetch, decode, and execute instructions.
+        Execute(Decode(Fetch()));
+    }
+
+    public void Draw(GameTime gameTime)
+    {
+        if (_nativeContext is null)
+        {
+            throw new InvalidOperationException("Native context is not initialized.");
+        }
+
+        _nativeContext.Draw(gameTime, DisplayBuffer);
+    }
+
+    private ushort Fetch()
+    {
+        var opCode = BinaryPrimitives.ReadUInt16BigEndian(Memory.Span.Slice(ProgramCounter, 2));
+        ProgramCounter += 2;
+        return opCode;
+    }
+
+    private BaseInstruction Decode(ushort opCode)
+    {
+        BaseInstruction instruction = (opCode & 0xF000) switch
+        {
+            0x0000 => (opCode & 0x00FF) switch
+            {
+                0x00E0 => new ClearScreenInstruction(opCode),
+                _ => new UnknownInstruction(_logger, opCode),
+            },
+            0x1000 => new JumpInstruction(opCode),
+            0x6000 => new SetRegisterVxInstruction(opCode),
+            0x7000 => new AddValueToRegisterVxInstruction(opCode),
+            0xA000 => new SetIndexRegisterIInstruction(opCode),
+            0xD000 => new DrawInstruction(opCode),
+            _ => new UnknownInstruction(_logger, opCode),
+        };
+
+        InstructionLogging.ExecutingInstruction(_logger, ProgramCounter, instruction);
+        return instruction;
+    }
+
+    private void Execute(BaseInstruction instruction) => instruction.Execute(this);
+
+    private void UpdateTimers(GameTime gameTime)
+    {
+        // CHIP-8 delay/sound timers tick at 60Hz, independent of CPU instruction rate.
+        _timerAccumulator += gameTime.DeltaTime;
+        while (_timerAccumulator >= TimerTick)
+        {
+            if (_delayTimer > 0)
+            {
+                _delayTimer--;
+            }
+
+            if (_soundTimer > 0)
+            {
+                _soundTimer--;
+            }
+
+            _timerAccumulator -= TimerTick;
+        }
+    }
 
     protected virtual void Dispose(bool disposing)
     {

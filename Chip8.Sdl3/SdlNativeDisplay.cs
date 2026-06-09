@@ -28,8 +28,13 @@ namespace Chip8.Sdl3;
 
 public class SdlNativeDisplay(ILogger<SdlNativeDisplay> logger) : INativeDisplay
 {
-    private readonly RomSelector _romSelector = new();
+    private const int DisplayWidth = 64;
+    private const int DisplayHeight = 32;
+    private const int PixelSize = 10;
+
     private readonly ILogger<SdlNativeDisplay> _logger = logger;
+    private readonly RomSelector _romSelector = new();
+    private readonly float[] _phosphor = new float[DisplayWidth * DisplayHeight];
 
     private SDL_Window? _window;
     private SDL_Renderer? _renderer;
@@ -43,7 +48,14 @@ public class SdlNativeDisplay(ILogger<SdlNativeDisplay> logger) : INativeDisplay
     [MemberNotNull(nameof(_window), nameof(_renderer))]
     public void Initialize()
     {
-        _window = SDL_CreateWindow("CHIP-8 Interpreter", 64 * 10, 32 * 10, SDL_WINDOW_RESIZABLE);
+        ObjectDisposedException.ThrowIf(_disposedValue, this);
+
+        _window = SDL_CreateWindow(
+            "CHIP-8 Interpreter",
+            DisplayWidth * PixelSize,
+            DisplayHeight * PixelSize,
+            SDL_WINDOW_RESIZABLE
+        );
         if (_window.IsInvalid)
         {
             throw new InvalidOperationException($"Failed to create SDL window: {SDL_GetError()}.");
@@ -65,7 +77,12 @@ public class SdlNativeDisplay(ILogger<SdlNativeDisplay> logger) : INativeDisplay
         }
 
         if (
-            !SDL_SetRenderLogicalPresentation(_renderer, 64, 32, SDL_LOGICAL_PRESENTATION_LETTERBOX)
+            !SDL_SetRenderLogicalPresentation(
+                _renderer,
+                DisplayWidth,
+                DisplayHeight,
+                SDL_LOGICAL_PRESENTATION_LETTERBOX
+            )
         )
         {
             throw new InvalidOperationException(
@@ -76,6 +93,9 @@ public class SdlNativeDisplay(ILogger<SdlNativeDisplay> logger) : INativeDisplay
 
     public void Update(GameTime gameTime)
     {
+        ArgumentNullException.ThrowIfNull(gameTime);
+        ObjectDisposedException.ThrowIf(_disposedValue, this);
+
         if (_renderer is null)
         {
             throw new InvalidOperationException("SDL renderer is not initialized.");
@@ -98,14 +118,23 @@ public class SdlNativeDisplay(ILogger<SdlNativeDisplay> logger) : INativeDisplay
             };
         }
 
+        if (!RomSelected)
+        {
+            return;
+        }
+
         if (!SDL_RenderClear(_renderer))
         {
             throw new InvalidOperationException($"Failed to clear SDL renderer: {SDL_GetError()}.");
         }
     }
 
-    public void Draw(GameTime gameTime)
+    public void Draw(GameTime gameTime, byte[] displayBuffer)
     {
+        ArgumentNullException.ThrowIfNull(gameTime);
+        ArgumentNullException.ThrowIfNull(displayBuffer);
+        ObjectDisposedException.ThrowIf(_disposedValue, this);
+
         if (_renderer is null)
         {
             throw new InvalidOperationException("SDL renderer is not initialized.");
@@ -116,11 +145,78 @@ public class SdlNativeDisplay(ILogger<SdlNativeDisplay> logger) : INativeDisplay
             return;
         }
 
+        UpdateScreen(gameTime, displayBuffer);
+
         if (!SDL_RenderPresent(_renderer))
         {
             throw new InvalidOperationException(
                 $"Failed to present SDL renderer: {SDL_GetError()}."
             );
+        }
+    }
+
+    private static (float Rise, float Decay) CalculatePhosphorBlends(GameTime gameTime)
+    {
+        TimeSpan riseTime = TimeSpan.FromSeconds(.02F);
+        TimeSpan decayTime = TimeSpan.FromSeconds(.18F);
+
+        var dt = float.Min((float)gameTime.DeltaTime.TotalSeconds, .1F);
+        var riseBlend = 1F - float.Exp(-dt / (float)riseTime.TotalSeconds);
+        var decayBlend = float.Exp(-dt / (float)decayTime.TotalSeconds);
+
+        return (riseBlend, decayBlend);
+    }
+
+    private void CalculatePhosphorDecay(float target, (float Rise, float Decay) blends, int index)
+    {
+        // Take _phosphor[index] as the intensity of the pixel at (x, y)
+        var blend = target > _phosphor[index] ? blends.Rise : blends.Decay;
+        _phosphor[index] += (target - _phosphor[index]) * blend;
+        _phosphor[index] = float.Clamp(_phosphor[index], 0F, 1F);
+    }
+
+    private byte CalculateColorIntensity(int index)
+    {
+        var gammaCorrected = float.Pow(_phosphor[index], .55F);
+        return (byte)(float.Clamp(gammaCorrected, 0F, 1F) * 255F);
+    }
+
+    private void UpdateScreen(GameTime gameTime, byte[] displayBuffer)
+    {
+        ArgumentNullException.ThrowIfNull(gameTime);
+        ArgumentNullException.ThrowIfNull(displayBuffer);
+        ObjectDisposedException.ThrowIf(_disposedValue, this);
+
+        if (_renderer is null)
+        {
+            throw new InvalidOperationException("SDL renderer is not initialized.");
+        }
+
+        var (riseBlend, decayBlend) = CalculatePhosphorBlends(gameTime);
+        for (var y = 0; y < DisplayHeight; y++)
+        {
+            for (var x = 0; x < DisplayWidth; x++)
+            {
+                var index = (y * DisplayWidth) + x;
+                var pixel = displayBuffer[index];
+                var target = pixel != 0 ? 1F : 0F;
+
+                CalculatePhosphorDecay(target, (riseBlend, decayBlend), index);
+                var color = CalculateColorIntensity(index);
+                if (!SDL_SetRenderDrawColor(_renderer, color, color, color, 255))
+                {
+                    throw new InvalidOperationException(
+                        $"Failed to set SDL renderer draw color: {SDL_GetError()}."
+                    );
+                }
+
+                if (!SDL_RenderPoint(_renderer, x, y))
+                {
+                    throw new InvalidOperationException(
+                        $"Failed to draw point on SDL renderer: {SDL_GetError()}."
+                    );
+                }
+            }
         }
     }
 

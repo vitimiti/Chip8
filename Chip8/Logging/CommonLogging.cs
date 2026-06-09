@@ -17,20 +17,12 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-using Chip8.Common;
-using Chip8.Common.Events;
+using Microsoft.Extensions.Logging;
 
-namespace Chip8.Abstractions;
+namespace Chip8.Logging;
 
-public interface INativeContext : IDisposable
+internal static partial class CommonLogging
 {
-    event EventHandler<QuitEventArgs>? QuitRequested;
-
-    INativeDisplay? Display { get; }
-
-    void Initialize();
-
-    void Update(GameTime gameTime);
-
-    void Draw(GameTime gameTime, byte[] displayBuffer);
+    [LoggerMessage(EventId = 1000, Level = LogLevel.Information, Message = "Loaded ROM: {RomPath}")]
+    public static partial void LoadedRom(ILogger logger, string romPath);
 }

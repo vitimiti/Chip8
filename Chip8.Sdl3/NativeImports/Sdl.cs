@@ -400,6 +400,11 @@ internal static unsafe partial class Ffi
 
     [LibraryImport(LibSdl3)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool SDL_RenderPoint(SDL_Renderer renderer, float x, float y);
+
+    [LibraryImport(LibSdl3)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     private static partial void SDL_DestroyRenderer(nint renderer);
 
     #endregion // SDL_render.h

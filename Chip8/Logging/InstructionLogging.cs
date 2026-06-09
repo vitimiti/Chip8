@@ -17,20 +17,32 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-using Chip8.Common;
-using Chip8.Common.Events;
+using Chip8.Instructions;
+using Microsoft.Extensions.Logging;
 
-namespace Chip8.Abstractions;
+namespace Chip8.Logging;
 
-public interface INativeContext : IDisposable
+internal static partial class InstructionLogging
 {
-    event EventHandler<QuitEventArgs>? QuitRequested;
+    [LoggerMessage(
+        EventId = 2000,
+        Level = LogLevel.Debug,
+        Message = "Executing instruction: ${ProgramCounter:X4}:{Instruction}"
+    )]
+    public static partial void ExecutingInstruction(
+        ILogger logger,
+        ushort programCounter,
+        BaseInstruction instruction
+    );
 
-    INativeDisplay? Display { get; }
-
-    void Initialize();
-
-    void Update(GameTime gameTime);
-
-    void Draw(GameTime gameTime, byte[] displayBuffer);
+    [LoggerMessage(
+        EventId = 2001,
+        Level = LogLevel.Warning,
+        Message = "Unknown instruction: ${ProgramCounter:X4}:{Instruction}"
+    )]
+    public static partial void UnknownInstruction(
+        ILogger logger,
+        ushort programCounter,
+        BaseInstruction instruction
+    );
 }

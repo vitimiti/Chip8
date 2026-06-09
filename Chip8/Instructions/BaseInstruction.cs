@@ -17,20 +17,19 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-using Chip8.Common;
-using Chip8.Common.Events;
+namespace Chip8.Instructions;
 
-namespace Chip8.Abstractions;
-
-public interface INativeContext : IDisposable
+internal abstract record BaseInstruction(ushort OpCode)
 {
-    event EventHandler<QuitEventArgs>? QuitRequested;
+    public ushort Nnn => (ushort)(OpCode & 0x0FFF);
 
-    INativeDisplay? Display { get; }
+    public byte Nn => (byte)(OpCode & 0x00FF);
 
-    void Initialize();
+    public byte N => (byte)(OpCode & 0x000F);
 
-    void Update(GameTime gameTime);
+    public byte X => (byte)((OpCode & 0x0F00) >> 8);
 
-    void Draw(GameTime gameTime, byte[] displayBuffer);
+    public byte Y => (byte)((OpCode & 0x00F0) >> 4);
+
+    public abstract void Execute(Interpreter interpreter);
 }

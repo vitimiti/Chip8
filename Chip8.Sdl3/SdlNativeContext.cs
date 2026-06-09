@@ -46,9 +46,12 @@ public class SdlNativeContext : INativeContext
         _display = display;
     }
 
+    public INativeDisplay? Display => _display;
+
     [MemberNotNull(nameof(_logObject), nameof(_display))]
     public void Initialize()
     {
+        ObjectDisposedException.ThrowIf(_disposedValue, this);
         AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
         {
             try
@@ -104,6 +107,9 @@ public class SdlNativeContext : INativeContext
 
     public void Update(GameTime gameTime)
     {
+        ArgumentNullException.ThrowIfNull(gameTime);
+        ObjectDisposedException.ThrowIf(_disposedValue, this);
+
         if (_display is null)
         {
             throw new InvalidOperationException("Display is not initialized.");
@@ -120,14 +126,18 @@ public class SdlNativeContext : INativeContext
         _display.Update(gameTime);
     }
 
-    public void Draw(GameTime gameTime)
+    public void Draw(GameTime gameTime, byte[] displayBuffer)
     {
+        ArgumentNullException.ThrowIfNull(gameTime);
+        ArgumentNullException.ThrowIfNull(displayBuffer);
+        ObjectDisposedException.ThrowIf(_disposedValue, this);
+
         if (_display is null)
         {
             throw new InvalidOperationException("Display is not initialized.");
         }
 
-        _display.Draw(gameTime);
+        _display.Draw(gameTime, displayBuffer);
     }
 
     protected virtual void Dispose(bool disposing)

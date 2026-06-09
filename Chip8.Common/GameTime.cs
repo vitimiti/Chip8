@@ -25,6 +25,7 @@ public sealed class GameTime : IDisposable
 {
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
     private TimeSpan _lastElapsed = TimeSpan.Zero;
+    private int _frameCount;
     private bool _disposedValue;
 
     public TimeSpan DeltaTime { get; private set; } = TimeSpan.Zero;
@@ -70,15 +71,16 @@ public sealed class GameTime : IDisposable
         ElapsedTime = _stopwatch.Elapsed;
         DeltaTime = ElapsedTime - _lastElapsed;
         _lastElapsed = ElapsedTime;
-        TotalTime += DeltaTime;
+        TotalTime = ElapsedTime;
         FrameTime += DeltaTime;
-        FramesPerSecond++;
+        _frameCount++;
 
         if (FrameTime >= TimeSpan.FromSeconds(1))
         {
-            // Reset frame time and count every second
-            FrameTime = TimeSpan.Zero;
-            FramesPerSecond = 0;
+            // Publish measured FPS for the elapsed second and keep remainder to avoid drift.
+            FramesPerSecond = _frameCount;
+            _frameCount = 0;
+            FrameTime -= TimeSpan.FromSeconds(1);
         }
     }
 }
