@@ -41,9 +41,7 @@ internal sealed class SafeLogObject : IDisposable
     {
         _logger = logger;
         SDL_SetLogPriorities(SDL_LogPriority.FromLogger(_logger));
-        SDL_LogOutputFunction = GCHandle.Alloc(
-            (Action<SDL_LogCategory, SDL_LogPriority, string>)LogOutput
-        );
+        SDL_LogOutputFunction = GCHandle.Alloc((LogOutputFunction)LogOutput);
 
         unsafe
         {
