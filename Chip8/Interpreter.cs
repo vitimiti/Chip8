@@ -52,7 +52,6 @@ internal class Interpreter(ILogger<Interpreter> logger, INativeContext nativeCon
     ];
 
     private readonly ILogger<Interpreter> _logger = logger;
-    private readonly Stack<ushort> _stack = new(16);
 
     private GameTime? _gameTime;
     private INativeContext? _nativeContext;
@@ -72,6 +71,8 @@ internal class Interpreter(ILogger<Interpreter> logger, INativeContext nativeCon
     internal byte[] V { get; } = new byte[16];
 
     internal ushort I { get; set; }
+
+    internal Stack<ushort> Stack { get; } = new(16);
 
     public void Run()
     {
@@ -162,9 +163,11 @@ internal class Interpreter(ILogger<Interpreter> logger, INativeContext nativeCon
             0x0000 => (opCode & 0x00FF) switch
             {
                 0x00E0 => new ClearScreenInstruction(opCode),
+                0x00EE => new ReturnFromSubroutineInstruction(opCode),
                 _ => new UnknownInstruction(_logger, opCode),
             },
             0x1000 => new JumpInstruction(opCode),
+            0x2000 => new CallSubroutineInstruction(opCode),
             0x6000 => new SetRegisterVxInstruction(opCode),
             0x7000 => new AddValueToRegisterVxInstruction(opCode),
             0xA000 => new SetIndexRegisterIInstruction(opCode),
