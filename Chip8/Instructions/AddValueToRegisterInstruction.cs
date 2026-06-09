@@ -19,7 +19,7 @@
 
 namespace Chip8.Instructions;
 
-internal record AddValueToRegisterVxInstruction(ushort OpCode) : BaseInstruction(OpCode)
+internal record AddValueToRegisterInstruction(ushort OpCode) : BaseInstruction(OpCode)
 {
     public override void Execute(Interpreter interpreter) => interpreter.V[X] += Nn;
 

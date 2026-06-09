@@ -19,9 +19,9 @@
 
 namespace Chip8.Instructions;
 
-internal record SetRegisterVxInstruction(ushort OpCode) : BaseInstruction(OpCode)
+internal record SetIndexRegisterInstruction(ushort OpCode) : BaseInstruction(OpCode)
 {
-    public override void Execute(Interpreter interpreter) => interpreter.V[X] = Nn;
+    public override void Execute(Interpreter interpreter) => interpreter.I = Nnn;
 
-    public override string ToString() => $"(0x{OpCode:X4})\tLD V{X:X}, 0x{Nn:X2}";
+    public override string ToString() => $"(0x{OpCode:X4})\tLD I, 0x{Nnn:X3}";
 }

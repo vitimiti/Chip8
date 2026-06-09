@@ -19,9 +19,15 @@
 
 namespace Chip8.Instructions;
 
-internal record SetIndexRegisterIInstruction(ushort OpCode) : BaseInstruction(OpCode)
+internal record SkipIfNotEqualInstruction(ushort OpCode) : BaseInstruction(OpCode)
 {
-    public override void Execute(Interpreter interpreter) => interpreter.I = Nnn;
+    public override void Execute(Interpreter interpreter)
+    {
+        if (interpreter.V[X] != Nn)
+        {
+            interpreter.ProgramCounter += 2;
+        }
+    }
 
-    public override string ToString() => $"(0x{OpCode:X4})\tLD I, 0x{Nnn:X3}";
+    public override string ToString() => $"(0x{OpCode:X4})\tSNE V{X:X}, 0x{Nn:X2}";
 }
