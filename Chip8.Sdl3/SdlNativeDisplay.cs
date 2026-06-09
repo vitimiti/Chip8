@@ -20,75 +20,76 @@
 using System.Diagnostics.CodeAnalysis;
 using Chip8.Abstractions;
 using Chip8.Common;
-using Chip8.Common.Events;
-using Microsoft.Extensions.Logging;
 using static Chip8.Sdl3.NativeImports.Ffi;
 
 namespace Chip8.Sdl3;
 
-public class SdlNativeContext : INativeContext
+public class SdlNativeDisplay : INativeDisplay
 {
-    public event EventHandler<QuitEventArgs>? QuitRequested;
-
-    private readonly ILogger<SdlNativeContext> _logger;
-
-    private SafeLogObject? _logObject;
-    private SdlNativeDisplay? _display;
+    private SDL_Window? _window;
+    private SDL_Renderer? _renderer;
     private bool _disposedValue;
 
-    public SdlNativeContext(ILogger<SdlNativeContext> logger)
-    {
-        ArgumentNullException.ThrowIfNull(logger);
-        _logger = logger;
-    }
-
-    [MemberNotNull(nameof(_logObject), nameof(_display))]
+    [MemberNotNull(nameof(_window), nameof(_renderer))]
     public void Initialize()
     {
-        SDL_SetMainReady();
-        _logObject = new SafeLogObject(_logger);
-        if (!SDL_SetAppMetadata("CHIP-8 Interpreter", "0.1.0", "io.github.vitimiti.chip8"))
+        _window = SDL_CreateWindow("CHIP-8 Interpreter", 64 * 10, 32 * 10, SDL_WINDOW_RESIZABLE);
+        if (_window.IsInvalid)
+        {
+            throw new InvalidOperationException($"Failed to create SDL window: {SDL_GetError()}.");
+        }
+
+        _renderer = SDL_CreateRenderer(_window, null);
+        if (_renderer.IsInvalid)
         {
             throw new InvalidOperationException(
-                $"Failed to set SDL application metadata: {SDL_GetError()}."
+                $"Failed to create SDL renderer: {SDL_GetError()}."
             );
         }
 
-        if (!SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_AUDIO))
+        if (!SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 255))
         {
-            throw new InvalidOperationException($"Failed to initialize SDL: {SDL_GetError()}.");
+            throw new InvalidOperationException(
+                $"Failed to set SDL renderer draw color: {SDL_GetError()}."
+            );
         }
 
-        _display = new SdlNativeDisplay();
-        _display.Initialize();
+        if (
+            !SDL_SetRenderLogicalPresentation(_renderer, 64, 32, SDL_LOGICAL_PRESENTATION_LETTERBOX)
+        )
+        {
+            throw new InvalidOperationException(
+                $"Failed to set SDL renderer logical presentation: {SDL_GetError()}."
+            );
+        }
     }
 
     public void Update(GameTime gameTime)
     {
-        if (_display is null)
+        if (_renderer is null)
         {
-            throw new InvalidOperationException("Display is not initialized.");
+            throw new InvalidOperationException("SDL renderer is not initialized.");
         }
 
-        while (SDL_PollEvent(out var e))
+        if (!SDL_RenderClear(_renderer))
         {
-            if (e.Type == SDL_EVENT_QUIT)
-            {
-                QuitRequested?.Invoke(this, new QuitEventArgs(gameTime.TotalTime));
-            }
+            throw new InvalidOperationException($"Failed to clear SDL renderer: {SDL_GetError()}.");
         }
-
-        _display.Update(gameTime);
     }
 
     public void Draw(GameTime gameTime)
     {
-        if (_display is null)
+        if (_renderer is null)
         {
-            throw new InvalidOperationException("Display is not initialized.");
+            throw new InvalidOperationException("SDL renderer is not initialized.");
         }
 
-        _display.Draw(gameTime);
+        if (!SDL_RenderPresent(_renderer))
+        {
+            throw new InvalidOperationException(
+                $"Failed to present SDL renderer: {SDL_GetError()}."
+            );
+        }
     }
 
     protected virtual void Dispose(bool disposing)
@@ -100,19 +101,17 @@ public class SdlNativeContext : INativeContext
 
         if (disposing)
         {
-            _display?.Dispose();
-            _logObject?.Dispose();
+            _renderer?.Dispose();
+            _window?.Dispose();
         }
 
-        _display = null;
-
-        SDL_Quit();
-        _logObject = null;
+        _renderer = null;
+        _window = null;
 
         _disposedValue = true;
     }
 
-    ~SdlNativeContext()
+    ~SdlNativeDisplay()
     {
         // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
         Dispose(disposing: false);

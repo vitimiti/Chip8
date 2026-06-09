@@ -22,6 +22,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
 using Microsoft.Extensions.Logging;
+using Microsoft.Win32.SafeHandles;
 
 namespace Chip8.Sdl3.NativeImports;
 
@@ -79,7 +80,7 @@ internal static unsafe partial class Ffi
 
     #region SDL_init.h
 
-    public record struct SDL_InitFlags(uint Value)
+    public readonly record struct SDL_InitFlags(uint Value)
     {
         public static SDL_InitFlags operator |(SDL_InitFlags left, SDL_InitFlags right) =>
             new(left.Value | right.Value);
@@ -249,4 +250,98 @@ internal static unsafe partial class Ffi
     public static partial void SDL_SetMainReady();
 
     #endregion // SDL_main.h
+
+    #region SDL_render.h
+
+    public readonly record struct SDL_RendererLogicalPresentation(int Value);
+
+    public static SDL_RendererLogicalPresentation SDL_LOGICAL_PRESENTATION_LETTERBOX => new(2);
+
+    [NativeMarshalling(typeof(SafeHandleMarshaller<SDL_Renderer>))]
+    public sealed class SDL_Renderer : SafeHandleZeroOrMinusOneIsInvalid
+    {
+        public SDL_Renderer()
+            : base(ownsHandle: true) => SetHandle(0);
+
+        protected override bool ReleaseHandle()
+        {
+            SDL_DestroyRenderer(handle);
+            return true;
+        }
+    }
+
+    [LibraryImport(LibSdl3, StringMarshalling = StringMarshalling.Utf8)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_Renderer SDL_CreateRenderer(SDL_Window window, string? name);
+
+    [LibraryImport(LibSdl3)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool SDL_SetRenderLogicalPresentation(
+        SDL_Renderer renderer,
+        int w,
+        int h,
+        SDL_RendererLogicalPresentation mode
+    );
+
+    [LibraryImport(LibSdl3)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool SDL_SetRenderDrawColor(
+        SDL_Renderer renderer,
+        byte r,
+        byte g,
+        byte b,
+        byte a
+    );
+
+    [LibraryImport(LibSdl3)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool SDL_RenderClear(SDL_Renderer renderer);
+
+    [LibraryImport(LibSdl3)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool SDL_RenderPresent(SDL_Renderer renderer);
+
+    [LibraryImport(LibSdl3)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    private static partial void SDL_DestroyRenderer(nint renderer);
+
+    #endregion // SDL_render.h
+
+    #region SDL_video.h
+
+    [NativeMarshalling(typeof(SafeHandleMarshaller<SDL_Window>))]
+    public sealed class SDL_Window : SafeHandleZeroOrMinusOneIsInvalid
+    {
+        public SDL_Window()
+            : base(ownsHandle: true) => SetHandle(0);
+
+        protected override bool ReleaseHandle()
+        {
+            SDL_DestroyWindow(handle);
+            return true;
+        }
+    }
+
+    public readonly record struct SDL_WindowFlags(ulong Value);
+
+    public static SDL_WindowFlags SDL_WINDOW_RESIZABLE => new(0x0000_0000_0000_0020UL);
+
+    [LibraryImport(LibSdl3, StringMarshalling = StringMarshalling.Utf8)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_Window SDL_CreateWindow(
+        string title,
+        int w,
+        int h,
+        SDL_WindowFlags flags
+    );
+
+    [LibraryImport(LibSdl3)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    private static partial void SDL_DestroyWindow(nint window);
+
+    #endregion // SDL_video.h
 }
