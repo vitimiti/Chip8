@@ -1,0 +1,41 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "restore",
+      "type": "shell",
+      "command": "dotnet restore",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "build-debug",
+      "dependsOn": "restore",
+      "type": "shell",
+      "command": "dotnet build -c Debug ${workspaceFolder}/Chip8/Chip8.csproj",
+      "group": {
+        "kind": "build"
+      }
+    },
+    {
+      "label": "build-internal",
+      "dependsOn": "restore",
+      "type": "shell",
+      "command": "dotnet build -c Internal ${workspaceFolder}/Chip8/Chip8.csproj",
+      "group": {
+        "kind": "build"
+      }
+    },
+    {
+      "label": "build-release",
+      "dependsOn": "restore",
+      "type": "shell",
+      "command": "dotnet build -c Release ${workspaceFolder}/Chip8/Chip8.csproj",
+      "group": {
+        "kind": "build"
+      }
+    }
+  ]
+}

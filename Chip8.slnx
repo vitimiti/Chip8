@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Chip8.Abstractions/Chip8.Abstractions.csproj" />
+  <Project Path="Chip8.Common/Chip8.Common.csproj" />
+  <Project Path="Chip8.Sdl3/Chip8.Sdl3.csproj" />
+  <Project Path="Chip8/Chip8.csproj" />
+</Solution>
