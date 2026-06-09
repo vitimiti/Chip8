@@ -17,23 +17,16 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-using Chip8.Common.Configurations;
-using Microsoft.Extensions.Logging;
+using System.ComponentModel.DataAnnotations;
 
-namespace Chip8.Logging;
+namespace Chip8.Common.Configurations;
 
-internal static partial class CommonLogging
+public sealed record InterpreterOptions
 {
-    [LoggerMessage(
-        EventId = 1000,
-        Level = LogLevel.Information,
-        Message = "Interpreter initialized with options: {InterpreterOptions}"
-    )]
-    public static partial void InterpreterInitialized(
-        ILogger logger,
-        InterpreterOptions interpreterOptions
-    );
+    [Required]
+    public InterpreterType Type { get; set; } = InterpreterType.Legacy;
 
-    [LoggerMessage(EventId = 1001, Level = LogLevel.Information, Message = "Loaded ROM: {RomPath}")]
-    public static partial void LoadedRom(ILogger logger, string romPath);
+    [Required]
+    [Range(1, 50, ErrorMessage = "The display size multiplier must be between 1 and 50.")]
+    public int DisplaySizeMultiplier { get; set; } = 10;
 }

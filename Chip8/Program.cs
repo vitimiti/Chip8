@@ -19,6 +19,7 @@
 
 using Chip8;
 using Chip8.Abstractions;
+using Chip8.Common.Configurations;
 using Chip8.Sdl3;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,6 +33,12 @@ var configuration = new ConfigurationBuilder()
 
 using var services = new ServiceCollection()
     .AddSingleton<IConfiguration>(configuration)
+    .AddSingleton(
+        configuration.GetSection("InterpreterOptions").Get<InterpreterOptions>()
+            ?? throw new InvalidOperationException(
+                "Failed to bind InterpreterOptions from configuration."
+            )
+    )
     .AddLogging(builder =>
     {
         builder.AddConfiguration(configuration.GetSection("Logging"));
@@ -42,7 +49,12 @@ using var services = new ServiceCollection()
             options.TimestampFormat = "[yyyy-MM-dd HH:mm:ss.fff] ";
         });
     })
-    .AddTransient<INativeDisplay, SdlNativeDisplay>()
+    .AddTransient<INativeDisplay, SdlNativeDisplay>(factory =>
+    {
+        var logger = factory.GetRequiredService<ILogger<SdlNativeDisplay>>();
+        var interpreterOptions = factory.GetRequiredService<InterpreterOptions>();
+        return new SdlNativeDisplay(logger, interpreterOptions);
+    })
     .AddTransient<INativeContext, SdlNativeContext>(factory =>
     {
         var logger = factory.GetRequiredService<ILogger<SdlNativeContext>>();

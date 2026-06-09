@@ -17,23 +17,16 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-using Chip8.Common.Configurations;
-using Microsoft.Extensions.Logging;
+namespace Chip8.Instructions;
 
-namespace Chip8.Logging;
-
-internal static partial class CommonLogging
+internal record SubtractXFromYInstruction(ushort OpCode) : BaseInstruction(OpCode)
 {
-    [LoggerMessage(
-        EventId = 1000,
-        Level = LogLevel.Information,
-        Message = "Interpreter initialized with options: {InterpreterOptions}"
-    )]
-    public static partial void InterpreterInitialized(
-        ILogger logger,
-        InterpreterOptions interpreterOptions
-    );
+    public override void Execute(Interpreter interpreter)
+    {
+        var diff = interpreter.V[Y] - interpreter.V[X];
+        interpreter.V[0xF] = (byte)(interpreter.V[Y] >= interpreter.V[X] ? 1 : 0);
+        interpreter.V[Y] = (byte)(diff & 0xFF);
+    }
 
-    [LoggerMessage(EventId = 1001, Level = LogLevel.Information, Message = "Loaded ROM: {RomPath}")]
-    public static partial void LoadedRom(ILogger logger, string romPath);
+    public override string ToString() => $"(0x{OpCode:X4})\tSUB V{Y:X}, V{X:X}";
 }

@@ -17,23 +17,10 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-using Chip8.Common.Configurations;
-using Microsoft.Extensions.Logging;
+namespace Chip8.Common.Configurations;
 
-namespace Chip8.Logging;
-
-internal static partial class CommonLogging
+public enum InterpreterType
 {
-    [LoggerMessage(
-        EventId = 1000,
-        Level = LogLevel.Information,
-        Message = "Interpreter initialized with options: {InterpreterOptions}"
-    )]
-    public static partial void InterpreterInitialized(
-        ILogger logger,
-        InterpreterOptions interpreterOptions
-    );
-
-    [LoggerMessage(EventId = 1001, Level = LogLevel.Information, Message = "Loaded ROM: {RomPath}")]
-    public static partial void LoadedRom(ILogger logger, string romPath);
+    Legacy,
+    SuperChip,
 }

@@ -18,22 +18,21 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 using Chip8.Common.Configurations;
-using Microsoft.Extensions.Logging;
 
-namespace Chip8.Logging;
+namespace Chip8.Instructions;
 
-internal static partial class CommonLogging
+internal record ShiftRightInstruction(ushort OpCode) : BaseInstruction(OpCode)
 {
-    [LoggerMessage(
-        EventId = 1000,
-        Level = LogLevel.Information,
-        Message = "Interpreter initialized with options: {InterpreterOptions}"
-    )]
-    public static partial void InterpreterInitialized(
-        ILogger logger,
-        InterpreterOptions interpreterOptions
-    );
+    public override void Execute(Interpreter interpreter)
+    {
+        if (interpreter.Options.Type is InterpreterType.Legacy)
+        {
+            interpreter.V[X] = interpreter.V[Y];
+        }
 
-    [LoggerMessage(EventId = 1001, Level = LogLevel.Information, Message = "Loaded ROM: {RomPath}")]
-    public static partial void LoadedRom(ILogger logger, string romPath);
+        interpreter.V[0xF] = (byte)(interpreter.V[X] & 0x1);
+        interpreter.V[X] >>= 1;
+    }
+
+    public override string ToString() => $"(0x{OpCode:X4})\tSHR V{X:X}";
 }

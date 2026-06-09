@@ -21,13 +21,14 @@ using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
 using Chip8.Abstractions;
 using Chip8.Common;
+using Chip8.Common.Configurations;
 using Chip8.Instructions;
 using Chip8.Logging;
 using Microsoft.Extensions.Logging;
 
 namespace Chip8;
 
-internal class Interpreter(ILogger<Interpreter> logger, INativeContext nativeContext) : IDisposable
+internal class Interpreter : IDisposable
 {
     private static readonly TimeSpan TimerTick = TimeSpan.FromSeconds(1.0 / 60.0);
 
@@ -51,8 +52,8 @@ internal class Interpreter(ILogger<Interpreter> logger, INativeContext nativeCon
         0xF0, 0x80, 0xF0, 0x80, 0x80  // F
     ];
 
-    private readonly ILogger<Interpreter> _logger = logger;
-
+    private readonly ILogger<Interpreter> _logger;
+    private readonly INativeContext _nativeContext1;
     private GameTime? _gameTime;
     private INativeContext? _nativeContext;
     private byte _delayTimer;
@@ -62,11 +63,25 @@ internal class Interpreter(ILogger<Interpreter> logger, INativeContext nativeCon
     private TimeSpan _timerAccumulator;
     private bool _disposedValue;
 
+    public Interpreter(
+        ILogger<Interpreter> logger,
+        INativeContext nativeContext,
+        InterpreterOptions options
+    )
+    {
+        _nativeContext1 = nativeContext;
+        _logger = logger;
+        Options = options;
+        DisplayBuffer = new byte[Options.Type is InterpreterType.Legacy ? 64 * 32 : 128 * 64];
+    }
+
+    internal InterpreterOptions Options { get; }
+
     internal Memory<byte> Memory { get; } = new byte[4096];
 
     internal ushort ProgramCounter { get; set; } = 0x0200;
 
-    internal byte[] DisplayBuffer { get; } = new byte[64 * 32];
+    internal byte[] DisplayBuffer { get; }
 
     internal byte[] V { get; } = new byte[16];
 
@@ -91,11 +106,15 @@ internal class Interpreter(ILogger<Interpreter> logger, INativeContext nativeCon
     [MemberNotNull(nameof(_gameTime), nameof(_nativeContext))]
     private void Initialize()
     {
+        CommonLogging.InterpreterInitialized(_logger, Options);
+
         _running = true;
         _gameTime = new GameTime();
-        _nativeContext = nativeContext;
+
+        _nativeContext = _nativeContext1;
         _nativeContext.Initialize();
         _nativeContext.QuitRequested += (_, _) => _running = false;
+
         Font.CopyTo(Memory.Span[0x0050..]);
     }
 
@@ -173,6 +192,19 @@ internal class Interpreter(ILogger<Interpreter> logger, INativeContext nativeCon
             0x5000 => new SkipIfRegistersEqualInstruction(opCode),
             0x6000 => new SetRegisterInstruction(opCode),
             0x7000 => new AddValueToRegisterInstruction(opCode),
+            0x8000 => (opCode & 0x000F) switch
+            {
+                0x0000 => new SetRegisterToRegisterInstruction(opCode),
+                0x0001 => new BinaryOrInstruction(opCode),
+                0x0002 => new BinaryAndInstruction(opCode),
+                0x0003 => new BinaryXorInstruction(opCode),
+                0x0004 => new AddRegistersInstruction(opCode),
+                0x0005 => new SubtractYFromXInstruction(opCode),
+                0x0006 => new ShiftRightInstruction(opCode),
+                0x0007 => new SubtractXFromYInstruction(opCode),
+                0x000E => new ShiftLeftInstruction(opCode),
+                _ => new UnknownInstruction(_logger, opCode),
+            },
             0x9000 => new SkipIfRegistersNotEqualInstruction(opCode),
             0xA000 => new SetIndexRegisterInstruction(opCode),
             0xD000 => new DrawInstruction(opCode),

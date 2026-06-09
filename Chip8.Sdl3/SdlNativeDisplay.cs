@@ -18,28 +18,38 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 using System.Diagnostics.CodeAnalysis;
+using System.Drawing;
 using Chip8.Abstractions;
 using Chip8.Common;
+using Chip8.Common.Configurations;
 using Chip8.Sdl3.Logging;
 using Microsoft.Extensions.Logging;
 using static Chip8.Sdl3.NativeImports.Ffi;
 
 namespace Chip8.Sdl3;
 
-public class SdlNativeDisplay(ILogger<SdlNativeDisplay> logger) : INativeDisplay
+public class SdlNativeDisplay : INativeDisplay
 {
-    private const int DisplayWidth = 64;
-    private const int DisplayHeight = 32;
-    private const int PixelSize = 10;
-
-    private readonly ILogger<SdlNativeDisplay> _logger = logger;
+    private readonly ILogger<SdlNativeDisplay> _logger;
+    private readonly InterpreterOptions _options;
     private readonly RomSelector _romSelector = new();
-    private readonly float[] _phosphor = new float[DisplayWidth * DisplayHeight];
+    private readonly float[] _phosphor;
+    private readonly Size _displaySize;
 
     private SDL_Window? _window;
     private SDL_Renderer? _renderer;
     private bool _romSelectorShown;
     private bool _disposedValue;
+
+    public SdlNativeDisplay(ILogger<SdlNativeDisplay> logger, InterpreterOptions options)
+    {
+        _logger = logger;
+        _options = options;
+        _displaySize =
+            options.Type is InterpreterType.Legacy ? new Size(64, 32) : new Size(128, 64);
+
+        _phosphor = new float[_displaySize.Width * _displaySize.Height];
+    }
 
     public bool RomSelected { get; private set; }
 
@@ -52,8 +62,8 @@ public class SdlNativeDisplay(ILogger<SdlNativeDisplay> logger) : INativeDisplay
 
         _window = SDL_CreateWindow(
             "CHIP-8 Interpreter",
-            DisplayWidth * PixelSize,
-            DisplayHeight * PixelSize,
+            _displaySize.Width * _options.DisplaySizeMultiplier,
+            _displaySize.Height * _options.DisplaySizeMultiplier,
             SDL_WINDOW_RESIZABLE
         );
         if (_window.IsInvalid)
@@ -79,8 +89,8 @@ public class SdlNativeDisplay(ILogger<SdlNativeDisplay> logger) : INativeDisplay
         if (
             !SDL_SetRenderLogicalPresentation(
                 _renderer,
-                DisplayWidth,
-                DisplayHeight,
+                _displaySize.Width,
+                _displaySize.Height,
                 SDL_LOGICAL_PRESENTATION_LETTERBOX
             )
         )
@@ -193,11 +203,11 @@ public class SdlNativeDisplay(ILogger<SdlNativeDisplay> logger) : INativeDisplay
         }
 
         var (riseBlend, decayBlend) = CalculatePhosphorBlends(gameTime);
-        for (var y = 0; y < DisplayHeight; y++)
+        for (var y = 0; y < _displaySize.Height; y++)
         {
-            for (var x = 0; x < DisplayWidth; x++)
+            for (var x = 0; x < _displaySize.Width; x++)
             {
-                var index = (y * DisplayWidth) + x;
+                var index = (y * _displaySize.Width) + x;
                 var pixel = displayBuffer[index];
                 var target = pixel != 0 ? 1F : 0F;
 
