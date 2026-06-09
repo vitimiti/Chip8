@@ -17,61 +17,43 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+using System.Diagnostics.CodeAnalysis;
 using Chip8.Abstractions;
 using Chip8.Common;
-using Chip8.Common.Events;
-using Microsoft.Extensions.Logging;
-using static Chip8.Sdl3.NativeImports.Ffi;
 
-namespace Chip8.Sdl3;
+namespace Chip8;
 
-public class SdlNativeContext : INativeContext
+internal class Interpreter(INativeContext nativeContext) : IDisposable
 {
-    public event EventHandler<QuitEventArgs>? QuitRequested;
+    private GameTime? _gameTime;
+    private INativeContext? _nativeContext;
 
-    private readonly ILogger<SdlNativeContext> _logger;
-
-    private SafeLogObject? _logObject;
+    private bool _running;
     private bool _disposedValue;
 
-    public SdlNativeContext(ILogger<SdlNativeContext> logger)
+    public void Run()
     {
-        ArgumentNullException.ThrowIfNull(logger);
-        _logger = logger;
-    }
-
-    public void Initialize()
-    {
-        SDL_SetMainReady();
-        _logObject = new SafeLogObject(_logger);
-        if (!SDL_SetAppMetadata("CHIP-8 Interpreter", "0.1.0", "io.github.vitimiti.chip8"))
+        Initialize();
+        while (_running)
         {
-            throw new InvalidOperationException(
-                $"Failed to set SDL application metadata: {SDL_GetError()}."
-            );
-        }
-
-        if (!SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_AUDIO))
-        {
-            throw new InvalidOperationException($"Failed to initialize SDL: {SDL_GetError()}.");
+            Update(_gameTime);
+            Draw(_gameTime);
         }
     }
 
-    public void Update(GameTime gameTime)
+    [MemberNotNull(nameof(_gameTime), nameof(_nativeContext))]
+    private void Initialize()
     {
-        while (SDL_PollEvent(out var e))
-        {
-            if (e.Type == SDL_EVENT_QUIT)
-            {
-                QuitRequested?.Invoke(this, new QuitEventArgs(gameTime.TotalTime));
-            }
-        }
+        _running = true;
+        _gameTime = new GameTime();
+        _nativeContext = nativeContext;
+        _nativeContext.Initialize();
+        _nativeContext.QuitRequested += (_, _) => _running = false;
     }
 
-    public void Draw(GameTime gameTime)
-    {
-        // Nothing to draw yet.
-    }
+    private void Update(GameTime gameTime) => _nativeContext?.Update(gameTime);
+
+    public void Draw(GameTime gameTime) => _nativeContext?.Draw(gameTime);
 
     protected virtual void Dispose(bool disposing)
     {
@@ -82,16 +64,17 @@ public class SdlNativeContext : INativeContext
 
         if (disposing)
         {
-            _logObject?.Dispose();
+            _nativeContext?.Dispose();
+            _gameTime?.Dispose();
         }
 
-        SDL_Quit();
-        _logObject = null;
+        _nativeContext = null;
+        _gameTime = null;
 
         _disposedValue = true;
     }
 
-    ~SdlNativeContext()
+    ~Interpreter()
     {
         // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
         Dispose(disposing: false);

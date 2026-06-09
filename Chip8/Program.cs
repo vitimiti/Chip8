@@ -1,2 +1,50 @@
-﻿// See https://aka.ms/new-console-template for more information
-Console.WriteLine("Hello, World!");
+﻿// The MIT License (MIT)
+//
+// Copyright (c) 2026 Victor Matia (vitimiti)
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+// and associated documentation files (the “Software”), to deal in the Software without
+// restriction, including without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all copies or
+// substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+// BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+using Chip8;
+using Chip8.Abstractions;
+using Chip8.Sdl3;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+var configuration = new ConfigurationBuilder()
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddJsonFile("appsettings.Debug.json", optional: true, reloadOnChange: true)
+    .AddJsonFile("appsettings.Internal.json", optional: true, reloadOnChange: true)
+    .Build();
+
+var services = new ServiceCollection()
+    .AddSingleton<IConfiguration>(configuration)
+    .AddLogging(builder =>
+    {
+        builder.AddConfiguration(configuration.GetSection("Logging"));
+        builder.AddSimpleConsole(options =>
+        {
+            options.IncludeScopes = true;
+            options.SingleLine = true;
+            options.TimestampFormat = "[yyyy-MM-dd HH:mm:ss.fff] ";
+        });
+    })
+    .AddSingleton<INativeContext, SdlNativeContext>()
+    .AddSingleton<Interpreter>()
+    .BuildServiceProvider();
+
+using var interpreter = services.GetRequiredService<Interpreter>();
+interpreter.Run();

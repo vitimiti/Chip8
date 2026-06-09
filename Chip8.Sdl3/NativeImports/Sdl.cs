@@ -54,6 +54,29 @@ internal static unsafe partial class Ffi
 
     #endregion // SDL_error.h
 
+    #region SDL_events.h
+
+    public readonly record struct SDL_EventType(uint Value);
+
+    public static SDL_EventType SDL_EVENT_QUIT => new(0x0000_0100U);
+
+    [StructLayout(LayoutKind.Explicit)]
+    public struct SDL_Event
+    {
+        [FieldOffset(0)]
+        public SDL_EventType Type;
+
+        [FieldOffset(0)]
+        private fixed byte _padding[128];
+    }
+
+    [LibraryImport(LibSdl3)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool SDL_PollEvent(out SDL_Event @event);
+
+    #endregion // SDL_events.h
+
     #region SDL_init.h
 
     public record struct SDL_InitFlags(uint Value)
