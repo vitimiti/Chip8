@@ -194,7 +194,7 @@ public class SdlNativeDisplay : INativeDisplay
 
         var dt = float.Min((float)gameTime.DeltaTime.TotalSeconds, .1F);
         var riseBlend = 1F - float.Exp(-dt / (float)riseTime.TotalSeconds);
-        var decayBlend = float.Exp(-dt / (float)decayTime.TotalSeconds);
+        var decayBlend = 1F - float.Exp(-dt / (float)decayTime.TotalSeconds);
 
         return (riseBlend, decayBlend);
     }
