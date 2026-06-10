@@ -24,4 +24,6 @@ namespace Chip8.Abstractions;
 public interface IRomSelector
 {
     event EventHandler<RomSelectedEventArgs>? RomSelected;
+
+    event EventHandler? SelectionCompleted;
 }

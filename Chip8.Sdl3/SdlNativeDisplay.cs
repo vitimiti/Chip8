@@ -48,6 +48,8 @@ public class SdlNativeDisplay : INativeDisplay
     private SDL_Window? _window;
     private SDL_Renderer? _renderer;
     private bool _romSelectorShown;
+    private bool _romSelectionInProgress;
+    private bool _romReloadRequested;
     private bool _disposedValue;
 
     public SdlNativeDisplay(ILogger<SdlNativeDisplay> logger, InterpreterOptions options)
@@ -58,11 +60,25 @@ public class SdlNativeDisplay : INativeDisplay
             options.Type is InterpreterType.Legacy ? new Size(64, 32) : new Size(128, 64);
 
         _phosphor = new float[_displaySize.Width * _displaySize.Height];
+
+        _romSelector.RomSelected += (_, args) =>
+        {
+            RomSelected = true;
+            SelectedRomPath = args.RomPath;
+            _romReloadRequested = true;
+            GeneralLog.SelectedRom(_logger, args.RomPath);
+        };
+
+        _romSelector.SelectionCompleted += (_, _) => _romSelectionInProgress = false;
     }
 
     public bool RomSelected { get; private set; }
 
     public string? SelectedRomPath { get; private set; }
+
+    public bool IsRomSelectionInProgress => _romSelectionInProgress;
+
+    public bool RomReloadRequested => _romReloadRequested;
 
     [MemberNotNull(nameof(_window), nameof(_renderer))]
     public void Initialize()
@@ -141,41 +157,36 @@ public class SdlNativeDisplay : INativeDisplay
         ];
     }
 
+    [MemberNotNull(nameof(_window))]
+    public void BeginRomSelection()
+    {
+        ObjectDisposedException.ThrowIf(_disposedValue, this);
+
+        if (_window is null)
+        {
+            throw new InvalidOperationException("SDL window is not initialized.");
+        }
+
+        if (_romSelectionInProgress)
+        {
+            return;
+        }
+
+        _romSelectorShown = true;
+        _romSelectionInProgress = true;
+        _romSelector.Show(_window);
+    }
+
+    public void ClearRomReloadRequest() => _romReloadRequested = false;
+
     public void Update(GameTime gameTime)
     {
         ArgumentNullException.ThrowIfNull(gameTime);
         ObjectDisposedException.ThrowIf(_disposedValue, this);
 
-        if (_renderer is null)
-        {
-            throw new InvalidOperationException("SDL renderer is not initialized.");
-        }
-
         if (!RomSelected && !_romSelectorShown)
         {
-            if (_window is null)
-            {
-                throw new InvalidOperationException("SDL window is not initialized.");
-            }
-
-            _romSelectorShown = true;
-            _romSelector.Show(_window);
-            _romSelector.RomSelected += (_, args) =>
-            {
-                RomSelected = true;
-                SelectedRomPath = args.RomPath;
-                GeneralLog.SelectedRom(_logger, args.RomPath);
-            };
-        }
-
-        if (!RomSelected)
-        {
-            return;
-        }
-
-        if (!SDL_RenderClear(_renderer))
-        {
-            throw new InvalidOperationException($"Failed to clear SDL renderer: {SDL_GetError()}.");
+            BeginRomSelection();
         }
     }
 
@@ -190,12 +201,15 @@ public class SdlNativeDisplay : INativeDisplay
             throw new InvalidOperationException("SDL renderer is not initialized.");
         }
 
-        if (!RomSelected)
+        if (!SDL_RenderClear(_renderer))
         {
-            return;
+            throw new InvalidOperationException($"Failed to clear SDL renderer: {SDL_GetError()}.");
         }
 
-        UpdateScreen(gameTime, displayBuffer);
+        if (RomSelected)
+        {
+            UpdateScreen(gameTime, displayBuffer);
+        }
 
         if (!SDL_RenderPresent(_renderer))
         {

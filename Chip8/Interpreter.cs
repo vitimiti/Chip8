@@ -69,6 +69,8 @@ internal class Interpreter : IDisposable
     private TimeSpan _instructionAccumulator;
     private TimeSpan _timerAccumulator;
     private bool _paused;
+    private bool _waitingForRomSelection;
+    private bool _pausedBeforeRomSelection;
     private bool _legacyDrawAllowed;
     private bool _disposedValue;
 
@@ -138,8 +140,50 @@ internal class Interpreter : IDisposable
         _nativeContext.Initialize();
         _nativeContext.QuitRequested += (_, _) => _running = false;
         _nativeContext.PauseToggleRequested += (_, _) => _paused = !_paused;
+        _nativeContext.OpenRomRequested += (_, _) => BeginRomSelection();
 
         Font.CopyTo(Memory.Span[GlyphStartAddress..]);
+    }
+
+    private void BeginRomSelection()
+    {
+        if (_nativeContext?.Display is null || _waitingForRomSelection)
+        {
+            return;
+        }
+
+        _pausedBeforeRomSelection = _paused;
+        _paused = true;
+        _waitingForRomSelection = true;
+
+        if (_nativeContext.Audio is not null && !_nativeContext.Audio.IsPaused())
+        {
+            _nativeContext.Audio.Pause();
+        }
+
+        _nativeContext.Display.BeginRomSelection();
+    }
+
+    private void ResetStateForNewRom()
+    {
+        Memory.Span.Clear();
+        Font.CopyTo(Memory.Span[GlyphStartAddress..]);
+
+        DisplayBuffer.AsSpan().Clear();
+        Array.Clear(V);
+        Stack.Clear();
+
+        ProgramCounter = 0x0200;
+        I = 0;
+        DelayTimer = 0;
+        SoundTimer = 0;
+        Fx0AKeyCandidate = null;
+        Keypad = new bool[0x10];
+
+        _instructionAccumulator = TimeSpan.Zero;
+        _timerAccumulator = TimeSpan.Zero;
+        _legacyDrawAllowed = true;
+        _romLoaded = false;
     }
 
     private void Update(GameTime gameTime)
@@ -154,6 +198,24 @@ internal class Interpreter : IDisposable
         if (_nativeContext.Display is null)
         {
             throw new InvalidOperationException("Native display is not initialized.");
+        }
+
+        if (_waitingForRomSelection)
+        {
+            if (_nativeContext.Display.IsRomSelectionInProgress)
+            {
+                return;
+            }
+
+            _waitingForRomSelection = false;
+
+            if (_nativeContext.Display.RomReloadRequested)
+            {
+                _nativeContext.Display.ClearRomReloadRequest();
+                ResetStateForNewRom();
+            }
+
+            _paused = _pausedBeforeRomSelection;
         }
 
         if (!_nativeContext.Display.RomSelected)

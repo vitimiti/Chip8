@@ -28,6 +28,8 @@ public interface INativeContext : IDisposable
 
     event EventHandler? PauseToggleRequested;
 
+    event EventHandler? OpenRomRequested;
+
     INativeAudio? Audio { get; }
 
     INativeDisplay? Display { get; }

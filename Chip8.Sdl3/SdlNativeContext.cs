@@ -31,6 +31,7 @@ public class SdlNativeContext : INativeContext
 {
     public event EventHandler<QuitEventArgs>? QuitRequested;
     public event EventHandler? PauseToggleRequested;
+    public event EventHandler? OpenRomRequested;
 
     private readonly ILogger<SdlNativeContext> _logger;
 
@@ -133,25 +134,48 @@ public class SdlNativeContext : INativeContext
 
         while (SDL_PollEvent(out var e))
         {
-            if (e.Type == SDL_EVENT_QUIT)
-            {
-                QuitRequested?.Invoke(this, new QuitEventArgs(gameTime.TotalTime));
-            }
-
-            if (e.Type == SDL_EVENT_KEY_DOWN)
-            {
-                if (e.Key.Scancode == SDL_SCANCODE_ESCAPE)
-                {
-                    QuitRequested?.Invoke(this, new QuitEventArgs(gameTime.TotalTime));
-                }
-                else if (e.Key.Scancode == SDL_SCANCODE_SPACE)
-                {
-                    PauseToggleRequested?.Invoke(this, EventArgs.Empty);
-                }
-            }
+            HandleEvent(e, gameTime.TotalTime);
         }
 
         _display.Update(gameTime);
+    }
+
+    private void HandleEvent(SDL_Event @event, TimeSpan timestamp)
+    {
+        if (@event.Type == SDL_EVENT_QUIT)
+        {
+            QuitRequested?.Invoke(this, new QuitEventArgs(timestamp));
+            return;
+        }
+
+        if (@event.Type == SDL_EVENT_KEY_DOWN)
+        {
+            HandleKeyDown(@event.Key.Scancode, timestamp);
+        }
+    }
+
+    private void HandleKeyDown(SDL_Scancode scancode, TimeSpan timestamp)
+    {
+        if (scancode == SDL_SCANCODE_ESCAPE)
+        {
+            QuitRequested?.Invoke(this, new QuitEventArgs(timestamp));
+            return;
+        }
+
+        if (scancode == SDL_SCANCODE_SPACE)
+        {
+            PauseToggleRequested?.Invoke(this, EventArgs.Empty);
+            return;
+        }
+
+        if (scancode == SDL_SCANCODE_O)
+        {
+            var keyboardState = SDL_GetKeyboardState();
+            if (keyboardState[SDL_SCANCODE_LCTRL] || keyboardState[SDL_SCANCODE_RCTRL])
+            {
+                OpenRomRequested?.Invoke(this, EventArgs.Empty);
+            }
+        }
     }
 
     public void Draw(GameTime gameTime, byte[] displayBuffer)

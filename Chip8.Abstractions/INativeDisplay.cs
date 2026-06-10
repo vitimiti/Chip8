@@ -27,9 +27,17 @@ public interface INativeDisplay : IDisposable
 
     string? SelectedRomPath { get; }
 
+    bool IsRomSelectionInProgress { get; }
+
+    bool RomReloadRequested { get; }
+
     void Initialize();
 
     bool[] SyncKeypad();
+
+    void BeginRomSelection();
+
+    void ClearRomReloadRequest();
 
     void Update(GameTime gameTime);
 

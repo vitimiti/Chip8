@@ -30,6 +30,8 @@ public class RomSelector : IRomSelector
 {
     public event EventHandler<RomSelectedEventArgs>? RomSelected;
 
+    public event EventHandler? SelectionCompleted;
+
     private delegate void DialogFileCallback(List<string?>? fileList, int filter);
 
     internal void Show(SDL_Window window)
@@ -56,19 +58,12 @@ public class RomSelector : IRomSelector
 
     private void DialogFile(List<string?>? fileList, int filter)
     {
-        if (fileList is null)
+        if (fileList is { Count: > 0 } && fileList[0] is { } selectedRomPath)
         {
-            throw new InvalidOperationException(
-                $"Error showing ROM selector dialog: {SDL_GetError()}."
-            );
+            RomSelected?.Invoke(this, new RomSelectedEventArgs(selectedRomPath));
         }
 
-        if (fileList.Count == 0 || fileList[0] is null)
-        {
-            throw new InvalidOperationException("No ROM file was selected.");
-        }
-
-        RomSelected?.Invoke(this, new RomSelectedEventArgs(fileList[0]!));
+        SelectionCompleted?.Invoke(this, EventArgs.Empty);
     }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]

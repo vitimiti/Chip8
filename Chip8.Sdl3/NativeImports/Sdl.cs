@@ -548,6 +548,7 @@ internal static unsafe partial class Ffi
     public static SDL_Scancode SDL_SCANCODE_D => new(7);
     public static SDL_Scancode SDL_SCANCODE_E => new(8);
     public static SDL_Scancode SDL_SCANCODE_F => new(9);
+    public static SDL_Scancode SDL_SCANCODE_O => new(18);
     public static SDL_Scancode SDL_SCANCODE_Q => new(20);
     public static SDL_Scancode SDL_SCANCODE_R => new(21);
     public static SDL_Scancode SDL_SCANCODE_S => new(22);
@@ -561,6 +562,8 @@ internal static unsafe partial class Ffi
     public static SDL_Scancode SDL_SCANCODE_4 => new(33);
     public static SDL_Scancode SDL_SCANCODE_ESCAPE => new(41);
     public static SDL_Scancode SDL_SCANCODE_SPACE => new(44);
+    public static SDL_Scancode SDL_SCANCODE_LCTRL => new(224);
+    public static SDL_Scancode SDL_SCANCODE_RCTRL => new(228);
 
     #endregion // SDL_scancode.h
 
