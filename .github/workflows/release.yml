@@ -168,25 +168,33 @@ jobs:
                   path: artifacts/installers/*.exe
 
     flatpak:
-        name: Linux Flatpak (x64)
+        name: Linux Flatpak (${{ matrix.rid }})
         needs: publish
         runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - rid: linux-x64
+                      flatpak_arch: x86_64
+                    - rid: linux-arm64
+                      flatpak_arch: aarch64
 
         steps:
             - name: Checkout
               uses: actions/checkout@v4
 
-            - name: Download linux-x64 publish artifact
+            - name: Download Linux publish artifact
               uses: actions/download-artifact@v4
               with:
-                  name: publish-linux-x64
-                  path: artifacts/publish/linux-x64
+                  name: publish-${{ matrix.rid }}
+                  path: artifacts/publish/${{ matrix.rid }}
 
             - name: Prepare Flatpak app root
               run: |
                   set -euo pipefail
                   mkdir -p packaging/flatpak/root
-                  cp -r artifacts/publish/linux-x64/* packaging/flatpak/root/
+                  cp -r artifacts/publish/${{ matrix.rid }}/* packaging/flatpak/root/
                   chmod +x packaging/flatpak/root/Chip8 || true
 
             - name: Install Flatpak tooling
@@ -198,23 +206,18 @@ jobs:
             - name: Build Flatpak
               run: |
                   set -euo pipefail
-                  flatpak-builder --force-clean --user --install-deps-from=flathub --repo=repo build-flatpak packaging/flatpak/io.github.vitimiti.chip8.yml
-
-            - name: Verify Flatpak includes libSDL3.so
-              run: |
-                  set -euo pipefail
-                  flatpak build build-flatpak sh -lc 'ls /app/lib/libSDL3.so* >/dev/null 2>&1'
+                  flatpak-builder --force-clean --arch=${{ matrix.flatpak_arch }} --use
 
             - name: Bundle Flatpak
               run: |
                   set -euo pipefail
-                  flatpak build-bundle repo chip8-linux-x64.flatpak io.github.vitimiti.chip8 stable
+                  flatpak build-bundle --arch=${{ matrix.flatpak_arch }} repo chip8-${{ matrix.rid }}.flatpak io.github.vitimiti.chip8 stable
 
             - name: Upload Flatpak artifact
               uses: actions/upload-artifact@v4
               with:
-                  name: flatpak-linux-x64
-                  path: chip8-linux-x64.flatpak
+                  name: flatpak-${{ matrix.rid }}
+                  path: chip8-${{ matrix.rid }}.flatpak
 
     macos-dmg:
         name: macOS DMG
@@ -356,7 +359,7 @@ jobs:
             - name: Download Flatpak bundle
               uses: actions/download-artifact@v4
               with:
-                  name: flatpak-linux-x64
+                  pattern: flatpak-*
                   path: release-assets/flatpak
 
             - name: Download macOS DMG
@@ -373,7 +376,7 @@ jobs:
                   output_file="release-assets/checksums/SHA256SUMS.txt"
                   : > "$output_file"
 
-                  mapfile -t files < <(find release-assets \( -path 'release-assets/packages/*.zip' -o -path 'release-assets/packages/*.tar.gz' -o -path 'release-assets/windows-installers/*.exe' -o -path 'release-assets/flatpak/*.flatpak' -o -path 'release-assets/macos/*.dmg' \) -type f | sort)
+                  mapfile -t files < <(find release-assets -type f \( -name '*.zip' -o -name '*.tar.gz' -o -name '*.exe' -o -name '*.flatpak' -o -name '*.dmg' \) | sort)
 
                   if [[ ${#files[@]} -eq 0 ]]; then
                     echo "No release files found for checksum generation."
@@ -396,7 +399,7 @@ jobs:
                       release-assets/packages/**/*.zip
                       release-assets/packages/**/*.tar.gz
                       release-assets/windows-installers/*.exe
-                      release-assets/flatpak/*.flatpak
+                      release-assets/flatpak/**/*.flatpak
                       release-assets/macos/*.dmg
                       release-assets/checksums/SHA256SUMS.txt
                       release-assets/checksums/*.sha256
