@@ -25,16 +25,29 @@ internal record GetKeyInstruction(Interpreter Interpreter, ushort OpCode)
     public override void Execute()
     {
         var keyState = Interpreter.Keypad;
+        if (Interpreter.Fx0AKeyCandidate is { } keyCandidate)
+        {
+            if (keyState[keyCandidate])
+            {
+                Interpreter.ProgramCounter -= 2;
+                return;
+            }
+
+            Interpreter.V[X] = keyCandidate;
+            Interpreter.Fx0AKeyCandidate = null;
+            return;
+        }
+
         for (byte i = 0; i < keyState.Length; i++)
         {
             if (keyState[i])
             {
-                Interpreter.V[X] = i;
+                Interpreter.Fx0AKeyCandidate = i;
+                Interpreter.ProgramCounter -= 2;
                 return;
             }
         }
 
-        // No key is pressed, repeat this instruction
         Interpreter.ProgramCounter -= 2;
     }
 

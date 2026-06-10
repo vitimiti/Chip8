@@ -24,7 +24,8 @@ internal record SkipIfKeyPressedInstruction(Interpreter Interpreter, ushort OpCo
 {
     public override void Execute()
     {
-        if (Interpreter.Keypad[X])
+        var key = (byte)(Interpreter.V[X] & 0x0F);
+        if (Interpreter.Keypad[key])
         {
             Interpreter.ProgramCounter += 2;
         }

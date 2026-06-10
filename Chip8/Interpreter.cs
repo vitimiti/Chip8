@@ -69,6 +69,7 @@ internal class Interpreter : IDisposable
     private TimeSpan _instructionAccumulator;
     private TimeSpan _timerAccumulator;
     private bool _paused;
+    private bool _legacyDrawAllowed;
     private bool _disposedValue;
 
     public Interpreter(
@@ -85,6 +86,7 @@ internal class Interpreter : IDisposable
         _instructionTick = TimeSpan.FromSeconds(1.0 / instructionsPerSecond);
 
         DisplayBuffer = new byte[Options.Type is InterpreterType.Legacy ? 64 * 32 : 128 * 64];
+        _legacyDrawAllowed = true;
     }
 
     internal InterpreterOptions Options { get; }
@@ -105,7 +107,9 @@ internal class Interpreter : IDisposable
 
     internal byte SoundTimer { get; set; }
 
-    internal bool[] Keypad { get; private set; } = new bool[0xF];
+    internal bool[] Keypad { get; private set; } = new bool[0x10];
+
+    internal byte? Fx0AKeyCandidate { get; set; }
 
     public void Run()
     {
@@ -208,6 +212,22 @@ internal class Interpreter : IDisposable
     private static void Execute(BaseInstruction instruction)
     {
         instruction.Execute();
+    }
+
+    internal bool TryBeginDraw()
+    {
+        if (Options.Type is not InterpreterType.Legacy)
+        {
+            return true;
+        }
+
+        if (!_legacyDrawAllowed)
+        {
+            return false;
+        }
+
+        _legacyDrawAllowed = false;
+        return true;
     }
 
     private ushort Fetch()
@@ -335,6 +355,11 @@ internal class Interpreter : IDisposable
             if (DelayTimer > 0)
             {
                 DelayTimer--;
+            }
+
+            if (Options.Type is InterpreterType.Legacy)
+            {
+                _legacyDrawAllowed = true;
             }
 
             UpdateSoundTimer();

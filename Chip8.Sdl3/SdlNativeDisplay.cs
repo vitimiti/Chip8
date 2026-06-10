@@ -120,7 +120,25 @@ public class SdlNativeDisplay : INativeDisplay
             _scanCodes[scanCode] = keyboardState[scanCode];
         }
 
-        return [.. _scanCodes.Values];
+        return
+        [
+            _scanCodes[SDL_SCANCODE_X], // 0
+            _scanCodes[SDL_SCANCODE_1], // 1
+            _scanCodes[SDL_SCANCODE_2], // 2
+            _scanCodes[SDL_SCANCODE_3], // 3
+            _scanCodes[SDL_SCANCODE_Q], // 4
+            _scanCodes[SDL_SCANCODE_W], // 5
+            _scanCodes[SDL_SCANCODE_E], // 6
+            _scanCodes[SDL_SCANCODE_A], // 7
+            _scanCodes[SDL_SCANCODE_S], // 8
+            _scanCodes[SDL_SCANCODE_D], // 9
+            _scanCodes[SDL_SCANCODE_Z], // A
+            _scanCodes[SDL_SCANCODE_C], // B
+            _scanCodes[SDL_SCANCODE_4], // C
+            _scanCodes[SDL_SCANCODE_R], // D
+            _scanCodes[SDL_SCANCODE_F], // E
+            _scanCodes[SDL_SCANCODE_V], // F
+        ];
     }
 
     public void Update(GameTime gameTime)
