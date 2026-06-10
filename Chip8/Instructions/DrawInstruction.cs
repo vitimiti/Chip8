@@ -38,8 +38,13 @@ internal record DrawInstruction(Interpreter Interpreter, ushort OpCode)
                 ? new Size(64, 32)
                 : new Size(128, 64);
 
-        var drawSchip16x16 = Interpreter.Options.Type is InterpreterType.SuperChipModern && N == 0;
-        var clipAtEdges = Interpreter.Options.Type is InterpreterType.Classic;
+        var drawSchip16x16 =
+            Interpreter.Options.Type
+                is InterpreterType.SuperChipLegacy
+                    or InterpreterType.SuperChipModern
+            && N == 0;
+
+        var clipAtEdges = Interpreter.Options.Type is not InterpreterType.XoChip;
         var spriteWidth = drawSchip16x16 ? 16 : 8;
         var spriteHeight = drawSchip16x16 ? 16 : N;
 
