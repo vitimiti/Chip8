@@ -23,4 +23,5 @@ public enum InterpreterType
 {
     Legacy,
     SuperChip,
+    XoChip,
 }
