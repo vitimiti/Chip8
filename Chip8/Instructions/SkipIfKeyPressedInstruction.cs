@@ -17,21 +17,18 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-using Chip8.Common;
+namespace Chip8.Instructions;
 
-namespace Chip8.Abstractions;
-
-public interface INativeDisplay : IDisposable
+internal record SkipIfKeyPressedInstruction(Interpreter Interpreter, ushort OpCode)
+    : BaseInstruction(Interpreter, OpCode)
 {
-    bool RomSelected { get; }
+    public override void Execute()
+    {
+        if (Interpreter.Keypad[X])
+        {
+            Interpreter.ProgramCounter += 2;
+        }
+    }
 
-    string? SelectedRomPath { get; }
-
-    void Initialize();
-
-    bool[] SyncKeypad();
-
-    void Update(GameTime gameTime);
-
-    void Draw(GameTime gameTime, byte[] displayBuffer);
+    public override string ToString() => $"(0x{OpCode:X4})\tSKP V{X:X}";
 }

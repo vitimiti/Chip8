@@ -54,6 +54,7 @@ internal class Interpreter : IDisposable
 
     private readonly ILogger<Interpreter> _logger;
     private readonly INativeContext _nativeContext1;
+
     private GameTime? _gameTime;
     private INativeContext? _nativeContext;
     private byte _delayTimer;
@@ -89,6 +90,8 @@ internal class Interpreter : IDisposable
     internal ushort I { get; set; }
 
     internal Stack<ushort> Stack { get; } = new(16);
+
+    internal bool[] Keypad { get; private set; } = new bool[0xF];
 
     public void Run()
     {
@@ -153,7 +156,7 @@ internal class Interpreter : IDisposable
             CommonLogging.LoadedRom(_logger, romPath);
         }
 
-        _nativeContext.Display.SyncKeypad();
+        Keypad = _nativeContext.Display.SyncKeypad();
         UpdateTimers(gameTime);
 
         // From right to left: Fetch, decode, and execute instructions.
@@ -225,6 +228,12 @@ internal class Interpreter : IDisposable
             0xB000 => new JumpWithOffsetInstruction(this, opCode),
             0xC000 => new RandomInstruction(this, opCode),
             0xD000 => new DrawInstruction(this, opCode),
+            0xE000 => (opCode & 0x00FF) switch
+            {
+                0x009E => new SkipIfKeyPressedInstruction(this, opCode),
+                0x00A1 => new SkipIfKeyNotPressedInstruction(this, opCode),
+                _ => new UnknownInstruction(_logger, this, opCode),
+            },
             _ => new UnknownInstruction(_logger, this, opCode),
         };
 

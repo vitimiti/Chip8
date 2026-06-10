@@ -110,13 +110,15 @@ public class SdlNativeDisplay : INativeDisplay
         }
     }
 
-    public void SyncKeypad()
+    public bool[] SyncKeypad()
     {
         var keyboardState = SDL_GetKeyboardState();
         foreach (var scanCode in _scanCodes.Keys)
         {
             _scanCodes[scanCode] = keyboardState[scanCode];
         }
+
+        return [.. _scanCodes.Values];
     }
 
     public void Update(GameTime gameTime)
