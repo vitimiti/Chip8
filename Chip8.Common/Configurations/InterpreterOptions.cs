@@ -42,6 +42,8 @@ public sealed record InterpreterOptions
     [Range(1, 192000, ErrorMessage = "The audio frequency must be between 1 and 192000Hz.")]
     public int AudioFrequency { get; set; } = 440;
 
+    public bool SetVfOnFx1EOverflow { get; set; }
+
     public override string ToString() =>
-        $"Interpreter Type: {Type}, Display Size Multiplier: {DisplaySizeMultiplier}, Audio Volume: {AudioVolume:P4}";
+        $"Interpreter Type: {Type}, Display Size Multiplier: {DisplaySizeMultiplier}, Audio Volume: {AudioVolume:P4}, Set VF on FX1E overflow: {SetVfOnFx1EOverflow}";
 }

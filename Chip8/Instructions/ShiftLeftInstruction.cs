@@ -26,13 +26,19 @@ internal record ShiftLeftInstruction(Interpreter Interpreter, ushort OpCode)
 {
     public override void Execute()
     {
+        byte value;
         if (Interpreter.Options.Type is InterpreterType.Legacy)
         {
-            Interpreter.V[X] = Interpreter.V[Y];
+            value = Interpreter.V[Y];
+            Interpreter.V[X] = value;
+        }
+        else
+        {
+            value = Interpreter.V[X];
         }
 
-        Interpreter.V[0xF] = (byte)((Interpreter.V[X] & 0x80) >> 7);
-        Interpreter.V[X] <<= 1;
+        Interpreter.V[X] = (byte)(value << 1);
+        Interpreter.V[0xF] = (byte)((value & 0x80) >> 7);
     }
 
     public override string ToString() => $"(0x{OpCode:X4})\tSHL V{X:X}";

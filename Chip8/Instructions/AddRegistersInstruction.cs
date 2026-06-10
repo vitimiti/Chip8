@@ -24,9 +24,11 @@ internal record AddRegistersInstruction(Interpreter Interpreter, ushort OpCode)
 {
     public override void Execute()
     {
-        var sum = Interpreter.V[X] + Interpreter.V[Y];
-        Interpreter.V[0xF] = (byte)(sum > 0xFF ? 1 : 0);
+        var vx = Interpreter.V[X];
+        var vy = Interpreter.V[Y];
+        var sum = vx + vy;
         Interpreter.V[X] = (byte)(sum & 0xFF);
+        Interpreter.V[0xF] = (byte)(sum > 0xFF ? 1 : 0);
     }
 
     public override string ToString() => $"(0x{OpCode:X4})\tADD V{X:X}, V{Y:X}";

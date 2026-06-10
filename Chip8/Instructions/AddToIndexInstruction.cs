@@ -25,8 +25,12 @@ internal record AddToIndexInstruction(Interpreter Interpreter, ushort OpCode)
     public override void Execute()
     {
         var sum = Interpreter.I + Interpreter.V[X];
-        Interpreter.V[0xF] = (byte)(sum > 0x0FFF ? 1 : 0);
-        Interpreter.I = (ushort)(sum & 0x0FFF);
+        if (Interpreter.Options.SetVfOnFx1EOverflow)
+        {
+            Interpreter.V[0xF] = (byte)(sum > 0x0FFF ? 1 : 0);
+        }
+
+        Interpreter.I = (ushort)sum;
     }
 
     public override string ToString() => $"(0x{OpCode:X4})\tADD I, V{X:X}";

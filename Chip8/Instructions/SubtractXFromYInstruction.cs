@@ -24,9 +24,11 @@ internal record SubtractXFromYInstruction(Interpreter Interpreter, ushort OpCode
 {
     public override void Execute()
     {
-        var diff = Interpreter.V[Y] - Interpreter.V[X];
-        Interpreter.V[0xF] = (byte)(Interpreter.V[Y] >= Interpreter.V[X] ? 1 : 0);
+        var vx = Interpreter.V[X];
+        var vy = Interpreter.V[Y];
+        var diff = vy - vx;
         Interpreter.V[X] = (byte)(diff & 0xFF);
+        Interpreter.V[0xF] = (byte)(vy >= vx ? 1 : 0);
     }
 
     public override string ToString() => $"(0x{OpCode:X4})\tSUBN V{X:X}, V{Y:X}";
