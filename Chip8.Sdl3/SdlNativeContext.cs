@@ -227,7 +227,7 @@ public class SdlNativeContext : INativeContext
 
         StatusMessageRequested?.Invoke(
             this,
-            new StatusMessageEventArgs($"CODE:{(int)scancode} KEY:${keypadValue:X}")
+            new StatusMessageEventArgs($"PRESSED KEY:{keypadValue:X}")
         );
     }
 
