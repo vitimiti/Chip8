@@ -25,11 +25,12 @@ internal record JumpWithOffsetInstruction(Interpreter Interpreter, ushort OpCode
     : BaseInstruction(Interpreter, OpCode)
 {
     public override void Execute() =>
-        Interpreter.ProgramCounter =
-            Interpreter.Options.Type is InterpreterType.Classic
-                ? (ushort)(Nnn + Interpreter.V[0])
-                : (ushort)(Nnn + Interpreter.V[X]);
+        Interpreter.ProgramCounter = Interpreter.Options.Type
+            is InterpreterType.Classic
+                or InterpreterType.XoChip
+            ? (ushort)(Nnn + Interpreter.V[0])
+            : (ushort)(Nnn + Interpreter.V[X]);
 
     public override string ToString() =>
-        $"(0x{OpCode:X4})\tJP V{(Interpreter.Options.Type is InterpreterType.Classic ? 0 : X):X}, 0x{Nnn:X3}";
+        $"(0x{OpCode:X4})\tJP V{(Interpreter.Options.Type is InterpreterType.Classic or InterpreterType.XoChip ? 0 : X):X}, 0x{Nnn:X3}";
 }

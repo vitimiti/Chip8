@@ -18,6 +18,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 using System.Buffers.Binary;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Chip8.Abstractions;
 using Chip8.Common;
@@ -71,7 +72,7 @@ internal class Interpreter : IDisposable
     private bool _paused;
     private bool _waitingForRomSelection;
     private bool _pausedBeforeRomSelection;
-    private bool _legacyDrawAllowed;
+    private long _nextDrawAllowedTimestamp;
     private bool _disposedValue;
 
     public Interpreter(
@@ -88,8 +89,8 @@ internal class Interpreter : IDisposable
         _instructionTick = TimeSpan.FromSeconds(1.0 / instructionsPerSecond);
 
         DisplayBuffer = new byte[Options.Type is InterpreterType.Classic ? 64 * 32 : 128 * 64];
-        IsHighResolution = Options.Type is not InterpreterType.Classic;
-        _legacyDrawAllowed = true;
+        IsHighResolution = false;
+        _nextDrawAllowedTimestamp = 0;
     }
 
     internal InterpreterOptions Options { get; }
@@ -186,8 +187,8 @@ internal class Interpreter : IDisposable
 
         _instructionAccumulator = TimeSpan.Zero;
         _timerAccumulator = TimeSpan.Zero;
-        _legacyDrawAllowed = true;
-        IsHighResolution = Options.Type is not InterpreterType.Classic;
+        _nextDrawAllowedTimestamp = 0;
+        IsHighResolution = false;
         _romLoaded = false;
     }
 
@@ -296,19 +297,24 @@ internal class Interpreter : IDisposable
         instruction.Execute();
     }
 
+    private bool ShouldThrottleDrawWait() =>
+        Options.Type is InterpreterType.Classic
+        || (Options.Type is InterpreterType.SuperChipLegacy && !IsHighResolution);
+
     internal bool TryBeginDraw()
     {
-        if (Options.Type is not InterpreterType.Classic)
+        if (!ShouldThrottleDrawWait())
         {
             return true;
         }
 
-        if (!_legacyDrawAllowed)
+        var now = Stopwatch.GetTimestamp();
+        if (now < _nextDrawAllowedTimestamp)
         {
             return false;
         }
 
-        _legacyDrawAllowed = false;
+        _nextDrawAllowedTimestamp = now + (Stopwatch.Frequency / 60);
         return true;
     }
 
@@ -320,6 +326,9 @@ internal class Interpreter : IDisposable
         }
 
         IsHighResolution = highResolution;
+
+        // Avoid carrying over a blocked draw when switching modes.
+        _nextDrawAllowedTimestamp = 0;
     }
 
     private ushort Fetch()
@@ -449,11 +458,6 @@ internal class Interpreter : IDisposable
             if (DelayTimer > 0)
             {
                 DelayTimer--;
-            }
-
-            if (Options.Type is InterpreterType.Classic)
-            {
-                _legacyDrawAllowed = true;
             }
 
             UpdateSoundTimer();

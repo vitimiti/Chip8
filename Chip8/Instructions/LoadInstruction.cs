@@ -37,7 +37,7 @@ internal record LoadInstruction(Interpreter Interpreter, ushort OpCode)
             Interpreter.V[i] = bytesToLoad[i];
         }
 
-        if (Interpreter.Options.Type is InterpreterType.Classic)
+        if (Interpreter.Options.Type is InterpreterType.Classic or InterpreterType.XoChip)
         {
             Interpreter.I += (ushort)(X + 1);
         }

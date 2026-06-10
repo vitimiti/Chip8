@@ -37,7 +37,7 @@ internal record StoreInstruction(Interpreter Interpreter, ushort OpCode)
             Interpreter.Memory.Span[Interpreter.I + i] = bytesToStore[i];
         }
 
-        if (Interpreter.Options.Type is InterpreterType.Classic)
+        if (Interpreter.Options.Type is InterpreterType.Classic or InterpreterType.XoChip)
         {
             Interpreter.I += (ushort)(X + 1);
         }

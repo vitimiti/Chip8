@@ -27,7 +27,7 @@ internal record ShiftRightInstruction(Interpreter Interpreter, ushort OpCode)
     public override void Execute()
     {
         byte value;
-        if (Interpreter.Options.Type is InterpreterType.Classic)
+        if (Interpreter.Options.Type is InterpreterType.Classic or InterpreterType.XoChip)
         {
             value = Interpreter.V[Y];
             Interpreter.V[X] = value;
