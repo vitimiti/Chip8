@@ -32,6 +32,9 @@ internal class Interpreter : IDisposable
 {
     private static readonly TimeSpan TimerTick = TimeSpan.FromSeconds(1.0 / 60.0);
 
+    public const ushort GlyphStartAddress = 0x0050;
+    public const ushort GlyphHeight = 5;
+
     // csharpier-ignore
     private static readonly byte[] Font = [
         0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -122,7 +125,7 @@ internal class Interpreter : IDisposable
         _nativeContext.Initialize();
         _nativeContext.QuitRequested += (_, _) => _running = false;
 
-        Font.CopyTo(Memory.Span[0x0050..]);
+        Font.CopyTo(Memory.Span[GlyphStartAddress..]);
     }
 
     private void Update(GameTime gameTime)
@@ -246,6 +249,7 @@ internal class Interpreter : IDisposable
                 0x0015 => new SetDelayTimerInstruction(this, opCode),
                 0x0018 => new SetSoundTimerInstruction(this, opCode),
                 0x001E => new AddToIndexInstruction(this, opCode),
+                0x0029 => new FontCharacterInstruction(this, opCode),
                 _ => new UnknownInstruction(_logger, this, opCode),
             },
             _ => new UnknownInstruction(_logger, this, opCode),
