@@ -560,6 +560,10 @@ internal static unsafe partial class Ffi
     public static SDL_Scancode SDL_SCANCODE_2 => new(31);
     public static SDL_Scancode SDL_SCANCODE_3 => new(32);
     public static SDL_Scancode SDL_SCANCODE_4 => new(33);
+    public static SDL_Scancode SDL_SCANCODE_F1 => new(58);
+    public static SDL_Scancode SDL_SCANCODE_F2 => new(59);
+    public static SDL_Scancode SDL_SCANCODE_F3 => new(60);
+    public static SDL_Scancode SDL_SCANCODE_F4 => new(61);
     public static SDL_Scancode SDL_SCANCODE_ESCAPE => new(41);
     public static SDL_Scancode SDL_SCANCODE_SPACE => new(44);
     public static SDL_Scancode SDL_SCANCODE_LCTRL => new(224);
@@ -610,6 +614,11 @@ internal static unsafe partial class Ffi
     [LibraryImport(LibSdl3)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     private static partial void SDL_DestroyWindow(nint window);
+
+    [LibraryImport(LibSdl3)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool SDL_SetWindowSize(SDL_Window window, int w, int h);
 
     #endregion // SDL_video.h
 }

@@ -61,7 +61,7 @@ internal class Interpreter : IDisposable
 
     private readonly ILogger<Interpreter> _logger;
     private readonly INativeContext _nativeContext1;
-    private readonly TimeSpan _instructionTick;
+    private TimeSpan _instructionTick;
 
     private GameTime? _gameTime;
     private INativeContext? _nativeContext;
@@ -85,10 +85,9 @@ internal class Interpreter : IDisposable
         _logger = logger;
         Options = options;
 
-        var instructionsPerSecond = Options.Type is InterpreterType.Classic ? 500 : 700;
-        _instructionTick = TimeSpan.FromSeconds(1.0 / instructionsPerSecond);
+        _instructionTick = GetInstructionTick(options.Type);
 
-        DisplayBuffer = new byte[Options.Type is InterpreterType.Classic ? 64 * 32 : 128 * 64];
+        DisplayBuffer = new byte[128 * 64];
         IsHighResolution = false;
         _nextDrawAllowedTimestamp = 0;
     }
@@ -146,6 +145,8 @@ internal class Interpreter : IDisposable
         _nativeContext.PauseToggleRequested += (_, _) => _paused = !_paused;
         _nativeContext.OpenRomRequested += (_, _) => BeginRomSelection();
         _nativeContext.ResetRomRequested += (_, _) => ResetCurrentRomExecution();
+        _nativeContext.InterpreterModeChanged += (_, args) =>
+            ApplyInterpreterType(args.InterpreterType);
 
         Font.CopyTo(Memory.Span[GlyphStartAddress..]);
     }
@@ -301,6 +302,118 @@ internal class Interpreter : IDisposable
         Options.Type is InterpreterType.Classic
         || (Options.Type is InterpreterType.SuperChipLegacy && !IsHighResolution);
 
+    private static TimeSpan GetInstructionTick(InterpreterType interpreterType)
+    {
+        var instructionsPerSecond = interpreterType is InterpreterType.Classic ? 500 : 700;
+        return TimeSpan.FromSeconds(1.0 / instructionsPerSecond);
+    }
+
+    private void ApplyInterpreterType(InterpreterType interpreterType)
+    {
+        if (Options.Type == interpreterType)
+        {
+            return;
+        }
+
+        var previousType = Options.Type;
+        Options.Type = interpreterType;
+        _instructionTick = GetInstructionTick(interpreterType);
+
+        // Preserve the last ROM-selected display mode when moving to SCHIP/XO.
+        // Classic does not use 00FE/00FF at runtime but we still remember the intent.
+        if (interpreterType is InterpreterType.Classic)
+        {
+            IsHighResolution = false;
+        }
+
+        _nextDrawAllowedTimestamp = 0;
+        _instructionAccumulator = TimeSpan.Zero;
+
+        RemapDisplayBuffer(previousType, interpreterType);
+        _nativeContext?.Display?.SetInterpreterType(interpreterType);
+    }
+
+    private void RemapDisplayBuffer(InterpreterType fromType, InterpreterType toType)
+    {
+        var sourceWidth = fromType is InterpreterType.Classic ? 64 : 128;
+        var sourceHeight = fromType is InterpreterType.Classic ? 32 : 64;
+        var destinationWidth = toType is InterpreterType.Classic ? 64 : 128;
+        var destinationHeight = toType is InterpreterType.Classic ? 32 : 64;
+
+        var source = (byte[])DisplayBuffer.Clone();
+        DisplayBuffer.AsSpan().Clear();
+
+        // When switching between 64x32 and 128x64 physical buffers, scale pixels to keep
+        // static content visible instead of clearing and waiting for ROM redraw.
+        if (sourceWidth == destinationWidth && sourceHeight == destinationHeight)
+        {
+            Array.Copy(source, DisplayBuffer, destinationWidth * destinationHeight);
+            return;
+        }
+
+        if (
+            sourceWidth == 64
+            && sourceHeight == 32
+            && destinationWidth == 128
+            && destinationHeight == 64
+        )
+        {
+            for (var y = 0; y < sourceHeight; y++)
+            {
+                for (var x = 0; x < sourceWidth; x++)
+                {
+                    if (source[(y * sourceWidth) + x] == 0)
+                    {
+                        continue;
+                    }
+
+                    var dstX = x * 2;
+                    var dstY = y * 2;
+                    DisplayBuffer[(dstY * destinationWidth) + dstX] = 1;
+                    DisplayBuffer[(dstY * destinationWidth) + dstX + 1] = 1;
+                    DisplayBuffer[((dstY + 1) * destinationWidth) + dstX] = 1;
+                    DisplayBuffer[((dstY + 1) * destinationWidth) + dstX + 1] = 1;
+                }
+            }
+
+            return;
+        }
+
+        if (
+            sourceWidth == 128
+            && sourceHeight == 64
+            && destinationWidth == 64
+            && destinationHeight == 32
+        )
+        {
+            for (var y = 0; y < destinationHeight; y++)
+            {
+                for (var x = 0; x < destinationWidth; x++)
+                {
+                    var srcX = x * 2;
+                    var srcY = y * 2;
+                    var merged =
+                        source[(srcY * sourceWidth) + srcX]
+                        | source[(srcY * sourceWidth) + srcX + 1]
+                        | source[((srcY + 1) * sourceWidth) + srcX]
+                        | source[((srcY + 1) * sourceWidth) + srcX + 1];
+
+                    DisplayBuffer[(y * destinationWidth) + x] = merged != 0 ? (byte)1 : (byte)0;
+                }
+            }
+
+            return;
+        }
+
+        // Fallback: keep overlapping region if new modes are introduced.
+        var copyWidth = Math.Min(sourceWidth, destinationWidth);
+        var copyHeight = Math.Min(sourceHeight, destinationHeight);
+        for (var y = 0; y < copyHeight; y++)
+        {
+            Array.Copy(source, y * sourceWidth, DisplayBuffer, y * destinationWidth, copyWidth);
+        }
+    }
+
     internal bool TryBeginDraw()
     {
         if (!ShouldThrottleDrawWait())
@@ -320,11 +433,8 @@ internal class Interpreter : IDisposable
 
     internal void SetDisplayMode(bool highResolution)
     {
-        if (Options.Type is InterpreterType.Classic)
-        {
-            return;
-        }
-
+        // Always remember the ROM-requested mode, even when in Classic.
+        // This allows switching into SCHIP/XO and restoring the intended lores/hires state.
         IsHighResolution = highResolution;
 
         // Avoid carrying over a blocked draw when switching modes.

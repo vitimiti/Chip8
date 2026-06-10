@@ -33,8 +33,8 @@ public class SdlNativeDisplay : INativeDisplay
     private readonly ILogger<SdlNativeDisplay> _logger;
     private readonly InterpreterOptions _options;
     private readonly RomSelector _romSelector = new();
-    private readonly float[] _phosphor;
-    private readonly Size _displaySize;
+    private float[] _phosphor;
+    private Size _displaySize;
 
     // csharpier-ignore
     private readonly Dictionary<SDL_Scancode, bool> _scanCodes = new()
@@ -56,8 +56,7 @@ public class SdlNativeDisplay : INativeDisplay
     {
         _logger = logger;
         _options = options;
-        _displaySize =
-            options.Type is InterpreterType.Classic ? new Size(64, 32) : new Size(128, 64);
+        _displaySize = GetDisplaySize(options.Type);
 
         _phosphor = new float[_displaySize.Width * _displaySize.Height];
 
@@ -79,6 +78,41 @@ public class SdlNativeDisplay : INativeDisplay
     public bool IsRomSelectionInProgress => _romSelectionInProgress;
 
     public bool RomReloadRequested => _romReloadRequested;
+
+    public void SetInterpreterType(InterpreterType interpreterType)
+    {
+        ObjectDisposedException.ThrowIf(_disposedValue, this);
+
+        _displaySize = GetDisplaySize(interpreterType);
+        _phosphor = new float[_displaySize.Width * _displaySize.Height];
+
+        if (
+            _renderer is not null
+            && !SDL_SetRenderLogicalPresentation(
+                _renderer,
+                _displaySize.Width,
+                _displaySize.Height,
+                SDL_LOGICAL_PRESENTATION_LETTERBOX
+            )
+        )
+        {
+            throw new InvalidOperationException(
+                $"Failed to set SDL renderer logical presentation: {SDL_GetError()}."
+            );
+        }
+
+        if (
+            _window is not null
+            && !SDL_SetWindowSize(
+                _window,
+                _displaySize.Width * _options.DisplaySizeMultiplier,
+                _displaySize.Height * _options.DisplaySizeMultiplier
+            )
+        )
+        {
+            throw new InvalidOperationException($"Failed to resize SDL window: {SDL_GetError()}.");
+        }
+    }
 
     [MemberNotNull(nameof(_window), nameof(_renderer))]
     public void Initialize()
@@ -283,6 +317,9 @@ public class SdlNativeDisplay : INativeDisplay
             }
         }
     }
+
+    private static Size GetDisplaySize(InterpreterType interpreterType) =>
+        interpreterType is InterpreterType.Classic ? new Size(64, 32) : new Size(128, 64);
 
     protected virtual void Dispose(bool disposing)
     {

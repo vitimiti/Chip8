@@ -18,6 +18,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 using Chip8.Common;
+using Chip8.Common.Configurations;
 
 namespace Chip8.Abstractions;
 
@@ -42,4 +43,6 @@ public interface INativeDisplay : IDisposable
     void Update(GameTime gameTime);
 
     void Draw(GameTime gameTime, byte[] displayBuffer);
+
+    void SetInterpreterType(InterpreterType interpreterType);
 }

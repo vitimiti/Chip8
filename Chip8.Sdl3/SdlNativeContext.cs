@@ -20,6 +20,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Chip8.Abstractions;
 using Chip8.Common;
+using Chip8.Common.Configurations;
 using Chip8.Common.Events;
 using Chip8.Sdl3.Logging;
 using Microsoft.Extensions.Logging;
@@ -33,6 +34,7 @@ public class SdlNativeContext : INativeContext
     public event EventHandler? PauseToggleRequested;
     public event EventHandler? OpenRomRequested;
     public event EventHandler? ResetRomRequested;
+    public event EventHandler<InterpreterModeChangedEventArgs>? InterpreterModeChanged;
 
     private readonly ILogger<SdlNativeContext> _logger;
 
@@ -157,6 +159,15 @@ public class SdlNativeContext : INativeContext
 
     private void HandleKeyDown(SDL_Scancode scancode, TimeSpan timestamp)
     {
+        if (TryGetInterpreterTypeFromFunctionKey(scancode, out var interpreterType))
+        {
+            InterpreterModeChanged?.Invoke(
+                this,
+                new InterpreterModeChangedEventArgs(interpreterType)
+            );
+            return;
+        }
+
         if (scancode == SDL_SCANCODE_ESCAPE)
         {
             QuitRequested?.Invoke(this, new QuitEventArgs(timestamp));
@@ -188,6 +199,26 @@ public class SdlNativeContext : INativeContext
                 ResetRomRequested?.Invoke(this, EventArgs.Empty);
             }
         }
+    }
+
+    private static bool TryGetInterpreterTypeFromFunctionKey(
+        SDL_Scancode scancode,
+        out InterpreterType interpreterType
+    )
+    {
+        interpreterType = scancode switch
+        {
+            _ when scancode == SDL_SCANCODE_F1 => InterpreterType.Classic,
+            _ when scancode == SDL_SCANCODE_F2 => InterpreterType.SuperChipLegacy,
+            _ when scancode == SDL_SCANCODE_F3 => InterpreterType.SuperChipModern,
+            _ when scancode == SDL_SCANCODE_F4 => InterpreterType.XoChip,
+            _ => default,
+        };
+
+        return scancode == SDL_SCANCODE_F1
+            || scancode == SDL_SCANCODE_F2
+            || scancode == SDL_SCANCODE_F3
+            || scancode == SDL_SCANCODE_F4;
     }
 
     public void Draw(GameTime gameTime, byte[] displayBuffer)
