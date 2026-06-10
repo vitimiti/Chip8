@@ -164,47 +164,75 @@ public class SdlNativeContext : INativeContext
 
     private void HandleKeyDown(SDL_Scancode scancode, TimeSpan timestamp)
     {
-        if (TryGetInterpreterTypeFromFunctionKey(scancode, out var interpreterType))
+        if (HandleInterpreterFunctionKeys(scancode))
         {
-            InterpreterModeChanged?.Invoke(
-                this,
-                new InterpreterModeChangedEventArgs(interpreterType)
-            );
             return;
         }
 
+        if (HandleQuirkFunctionKeys(scancode))
+        {
+            return;
+        }
+
+        PublishKeypadStatusMessage(scancode);
+        HandleEmulatorControlKeys(scancode, timestamp);
+    }
+
+    private bool HandleInterpreterFunctionKeys(SDL_Scancode scancode)
+    {
+        if (!TryGetInterpreterTypeFromFunctionKey(scancode, out var interpreterType))
+        {
+            return false;
+        }
+
+        InterpreterModeChanged?.Invoke(this, new InterpreterModeChangedEventArgs(interpreterType));
+        return true;
+    }
+
+    private bool HandleQuirkFunctionKeys(SDL_Scancode scancode)
+    {
         if (scancode == SDL_SCANCODE_F5)
         {
             SetVfOnFx1EOverflowToggleRequested?.Invoke(this, EventArgs.Empty);
-            return;
+            return true;
         }
 
         if (scancode == SDL_SCANCODE_F6)
         {
             IncrementIOnFx55Fx65ToggleRequested?.Invoke(this, EventArgs.Empty);
-            return;
+            return true;
         }
 
         if (scancode == SDL_SCANCODE_F7)
         {
             UseLegacyShiftSourceQuirkToggleRequested?.Invoke(this, EventArgs.Empty);
-            return;
+            return true;
         }
 
         if (scancode == SDL_SCANCODE_F8)
         {
             DebugOverlayToggleRequested?.Invoke(this, EventArgs.Empty);
+            return true;
+        }
+
+        return false;
+    }
+
+    private void PublishKeypadStatusMessage(SDL_Scancode scancode)
+    {
+        if (!TryGetKeypadValueFromScancode(scancode, out var keypadValue))
+        {
             return;
         }
 
-        if (TryGetKeypadValueFromScancode(scancode, out var keypadValue))
-        {
-            StatusMessageRequested?.Invoke(
-                this,
-                new StatusMessageEventArgs($"CODE:{(int)scancode} KEY:${keypadValue:X}")
-            );
-        }
+        StatusMessageRequested?.Invoke(
+            this,
+            new StatusMessageEventArgs($"CODE:{(int)scancode} KEY:${keypadValue:X}")
+        );
+    }
 
+    private void HandleEmulatorControlKeys(SDL_Scancode scancode, TimeSpan timestamp)
+    {
         if (scancode == SDL_SCANCODE_ESCAPE)
         {
             QuitRequested?.Invoke(this, new QuitEventArgs(timestamp));
@@ -219,8 +247,7 @@ public class SdlNativeContext : INativeContext
 
         if (scancode == SDL_SCANCODE_O)
         {
-            var keyboardState = SDL_GetKeyboardState();
-            if (keyboardState[SDL_SCANCODE_LCTRL] || keyboardState[SDL_SCANCODE_RCTRL])
+            if (IsCtrlPressed())
             {
                 OpenRomRequested?.Invoke(this, EventArgs.Empty);
             }
@@ -228,14 +255,16 @@ public class SdlNativeContext : INativeContext
             return;
         }
 
-        if (scancode == SDL_SCANCODE_R)
+        if (scancode == SDL_SCANCODE_R && IsCtrlPressed())
         {
-            var keyboardState = SDL_GetKeyboardState();
-            if (keyboardState[SDL_SCANCODE_LCTRL] || keyboardState[SDL_SCANCODE_RCTRL])
-            {
-                ResetRomRequested?.Invoke(this, EventArgs.Empty);
-            }
+            ResetRomRequested?.Invoke(this, EventArgs.Empty);
         }
+    }
+
+    private static bool IsCtrlPressed()
+    {
+        var keyboardState = SDL_GetKeyboardState();
+        return keyboardState[SDL_SCANCODE_LCTRL] || keyboardState[SDL_SCANCODE_RCTRL];
     }
 
     private static bool TryGetInterpreterTypeFromFunctionKey(
