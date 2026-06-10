@@ -57,14 +57,15 @@ internal class Interpreter : IDisposable
 
     private readonly ILogger<Interpreter> _logger;
     private readonly INativeContext _nativeContext1;
+    private readonly TimeSpan _instructionTick;
 
     private GameTime? _gameTime;
     private INativeContext? _nativeContext;
     private bool _running;
     private bool _romLoaded;
+    private TimeSpan _instructionAccumulator;
     private TimeSpan _timerAccumulator;
     private bool _disposedValue;
-    private int _executionCount;
 
     public Interpreter(
         ILogger<Interpreter> logger,
@@ -75,6 +76,10 @@ internal class Interpreter : IDisposable
         _nativeContext1 = nativeContext;
         _logger = logger;
         Options = options;
+
+        var instructionsPerSecond = Options.Type is InterpreterType.Legacy ? 500 : 700;
+        _instructionTick = TimeSpan.FromSeconds(1.0 / instructionsPerSecond);
+
         DisplayBuffer = new byte[Options.Type is InterpreterType.Legacy ? 64 * 32 : 128 * 64];
     }
 
@@ -165,9 +170,7 @@ internal class Interpreter : IDisposable
 
         Keypad = _nativeContext.Display.SyncKeypad();
         UpdateTimers(gameTime);
-
-        // From right to left: Fetch, decode, and execute instructions.
-        Execute(gameTime, Decode(Fetch()));
+        ExecutePendingInstructions(gameTime);
     }
 
     public void Draw(GameTime gameTime)
@@ -181,17 +184,20 @@ internal class Interpreter : IDisposable
         _nativeContext.Draw(gameTime, DisplayBuffer);
     }
 
-    private void Execute(GameTime gameTime, BaseInstruction instruction)
+    private void ExecutePendingInstructions(GameTime gameTime)
     {
-        // Limit execution to 500/700 instructions per second
-        var instructionsPerSecond = Options.Type is InterpreterType.Legacy ? 500 : 700;
-        if (gameTime.TotalTime.TotalSeconds * instructionsPerSecond < _executionCount)
+        // Execute CPU cycles at a fixed frequency independent from render/update cadence.
+        _instructionAccumulator += gameTime.DeltaTime;
+        while (_instructionAccumulator >= _instructionTick)
         {
-            return;
+            Execute(Decode(Fetch()));
+            _instructionAccumulator -= _instructionTick;
         }
+    }
 
+    private static void Execute(BaseInstruction instruction)
+    {
         instruction.Execute();
-        _executionCount++;
     }
 
     private ushort Fetch()

@@ -22,7 +22,7 @@ namespace Chip8.Instructions;
 internal record SetDelayTimerInstruction(Interpreter Interpreter, ushort OpCode)
     : BaseInstruction(Interpreter, OpCode)
 {
-    public override void Execute() => Interpreter.DelayTimer = X;
+    public override void Execute() => Interpreter.DelayTimer = Interpreter.V[X];
 
     public override string ToString() => $"(0x{OpCode:X4})\tLD DT, V{X:X}";
 }
