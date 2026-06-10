@@ -244,6 +244,7 @@ internal class Interpreter : IDisposable
                 0x0007 => new LoadDelayTimerInstruction(this, opCode),
                 0x0015 => new SetDelayTimerInstruction(this, opCode),
                 0x0018 => new SetSoundTimerInstruction(this, opCode),
+                0x001E => new AddToIndexInstruction(this, opCode),
                 _ => new UnknownInstruction(_logger, this, opCode),
             },
             _ => new UnknownInstruction(_logger, this, opCode),
