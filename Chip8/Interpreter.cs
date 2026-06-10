@@ -335,82 +335,133 @@ internal class Interpreter : IDisposable
 
     private void RemapDisplayBuffer(InterpreterType fromType, InterpreterType toType)
     {
-        var sourceWidth = fromType is InterpreterType.Classic ? 64 : 128;
-        var sourceHeight = fromType is InterpreterType.Classic ? 32 : 64;
-        var destinationWidth = toType is InterpreterType.Classic ? 64 : 128;
-        var destinationHeight = toType is InterpreterType.Classic ? 32 : 64;
+        var sourceDimensions = GetDisplayBufferDimensions(fromType);
+        var destinationDimensions = GetDisplayBufferDimensions(toType);
 
         var source = (byte[])DisplayBuffer.Clone();
         DisplayBuffer.AsSpan().Clear();
 
         // When switching between 64x32 and 128x64 physical buffers, scale pixels to keep
         // static content visible instead of clearing and waiting for ROM redraw.
-        if (sourceWidth == destinationWidth && sourceHeight == destinationHeight)
+        if (sourceDimensions == destinationDimensions)
         {
-            Array.Copy(source, DisplayBuffer, destinationWidth * destinationHeight);
+            CopySameSizeBuffer(source, destinationDimensions);
             return;
         }
 
-        if (
-            sourceWidth == 64
-            && sourceHeight == 32
-            && destinationWidth == 128
-            && destinationHeight == 64
-        )
+        if (CanUpscale2x(sourceDimensions, destinationDimensions))
         {
-            for (var y = 0; y < sourceHeight; y++)
+            Upscale2xBuffer(source, sourceDimensions, destinationDimensions);
+            return;
+        }
+
+        if (CanDownscale2x(sourceDimensions, destinationDimensions))
+        {
+            Downscale2xBuffer(source, sourceDimensions, destinationDimensions);
+            return;
+        }
+
+        CopyOverlappingRegion(source, sourceDimensions, destinationDimensions);
+    }
+
+    private static (int Width, int Height) GetDisplayBufferDimensions(
+        InterpreterType interpreterType
+    ) => interpreterType is InterpreterType.Classic ? (64, 32) : (128, 64);
+
+    private void CopySameSizeBuffer(byte[] source, (int Width, int Height) destinationDimensions)
+    {
+        Array.Copy(
+            source,
+            DisplayBuffer,
+            destinationDimensions.Width * destinationDimensions.Height
+        );
+    }
+
+    private static bool CanUpscale2x(
+        (int Width, int Height) sourceDimensions,
+        (int Width, int Height) destinationDimensions
+    ) =>
+        sourceDimensions.Width == 64
+        && sourceDimensions.Height == 32
+        && destinationDimensions.Width == 128
+        && destinationDimensions.Height == 64;
+
+    private void Upscale2xBuffer(
+        byte[] source,
+        (int Width, int Height) sourceDimensions,
+        (int Width, int Height) destinationDimensions
+    )
+    {
+        for (var y = 0; y < sourceDimensions.Height; y++)
+        {
+            for (var x = 0; x < sourceDimensions.Width; x++)
             {
-                for (var x = 0; x < sourceWidth; x++)
+                if (source[(y * sourceDimensions.Width) + x] == 0)
                 {
-                    if (source[(y * sourceWidth) + x] == 0)
-                    {
-                        continue;
-                    }
-
-                    var dstX = x * 2;
-                    var dstY = y * 2;
-                    DisplayBuffer[(dstY * destinationWidth) + dstX] = 1;
-                    DisplayBuffer[(dstY * destinationWidth) + dstX + 1] = 1;
-                    DisplayBuffer[((dstY + 1) * destinationWidth) + dstX] = 1;
-                    DisplayBuffer[((dstY + 1) * destinationWidth) + dstX + 1] = 1;
+                    continue;
                 }
+
+                var dstX = x * 2;
+                var dstY = y * 2;
+                DisplayBuffer[(dstY * destinationDimensions.Width) + dstX] = 1;
+                DisplayBuffer[(dstY * destinationDimensions.Width) + dstX + 1] = 1;
+                DisplayBuffer[((dstY + 1) * destinationDimensions.Width) + dstX] = 1;
+                DisplayBuffer[((dstY + 1) * destinationDimensions.Width) + dstX + 1] = 1;
             }
-
-            return;
         }
+    }
 
-        if (
-            sourceWidth == 128
-            && sourceHeight == 64
-            && destinationWidth == 64
-            && destinationHeight == 32
-        )
+    private static bool CanDownscale2x(
+        (int Width, int Height) sourceDimensions,
+        (int Width, int Height) destinationDimensions
+    ) =>
+        sourceDimensions.Width == 128
+        && sourceDimensions.Height == 64
+        && destinationDimensions.Width == 64
+        && destinationDimensions.Height == 32;
+
+    private void Downscale2xBuffer(
+        byte[] source,
+        (int Width, int Height) sourceDimensions,
+        (int Width, int Height) destinationDimensions
+    )
+    {
+        for (var y = 0; y < destinationDimensions.Height; y++)
         {
-            for (var y = 0; y < destinationHeight; y++)
+            for (var x = 0; x < destinationDimensions.Width; x++)
             {
-                for (var x = 0; x < destinationWidth; x++)
-                {
-                    var srcX = x * 2;
-                    var srcY = y * 2;
-                    var merged =
-                        source[(srcY * sourceWidth) + srcX]
-                        | source[(srcY * sourceWidth) + srcX + 1]
-                        | source[((srcY + 1) * sourceWidth) + srcX]
-                        | source[((srcY + 1) * sourceWidth) + srcX + 1];
+                var srcX = x * 2;
+                var srcY = y * 2;
+                var merged =
+                    source[(srcY * sourceDimensions.Width) + srcX]
+                    | source[(srcY * sourceDimensions.Width) + srcX + 1]
+                    | source[((srcY + 1) * sourceDimensions.Width) + srcX]
+                    | source[((srcY + 1) * sourceDimensions.Width) + srcX + 1];
 
-                    DisplayBuffer[(y * destinationWidth) + x] = merged != 0 ? (byte)1 : (byte)0;
-                }
+                DisplayBuffer[(y * destinationDimensions.Width) + x] =
+                    merged != 0 ? (byte)1 : (byte)0;
             }
-
-            return;
         }
+    }
 
+    private void CopyOverlappingRegion(
+        byte[] source,
+        (int Width, int Height) sourceDimensions,
+        (int Width, int Height) destinationDimensions
+    )
+    {
         // Fallback: keep overlapping region if new modes are introduced.
-        var copyWidth = Math.Min(sourceWidth, destinationWidth);
-        var copyHeight = Math.Min(sourceHeight, destinationHeight);
+        var copyWidth = Math.Min(sourceDimensions.Width, destinationDimensions.Width);
+        var copyHeight = Math.Min(sourceDimensions.Height, destinationDimensions.Height);
         for (var y = 0; y < copyHeight; y++)
         {
-            Array.Copy(source, y * sourceWidth, DisplayBuffer, y * destinationWidth, copyWidth);
+            Array.Copy(
+                source,
+                y * sourceDimensions.Width,
+                DisplayBuffer,
+                y * destinationDimensions.Width,
+                copyWidth
+            );
         }
     }
 
