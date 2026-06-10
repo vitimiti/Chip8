@@ -21,7 +21,8 @@ namespace Chip8.Common.Configurations;
 
 public enum InterpreterType
 {
-    Legacy,
-    SuperChip,
+    Classic,
+    SuperChipLegacy,
+    SuperChipModern,
     XoChip,
 }

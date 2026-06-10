@@ -57,7 +57,7 @@ public class SdlNativeDisplay : INativeDisplay
         _logger = logger;
         _options = options;
         _displaySize =
-            options.Type is InterpreterType.Legacy ? new Size(64, 32) : new Size(128, 64);
+            options.Type is InterpreterType.Classic ? new Size(64, 32) : new Size(128, 64);
 
         _phosphor = new float[_displaySize.Width * _displaySize.Height];
 

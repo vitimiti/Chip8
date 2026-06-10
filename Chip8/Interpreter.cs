@@ -84,10 +84,10 @@ internal class Interpreter : IDisposable
         _logger = logger;
         Options = options;
 
-        var instructionsPerSecond = Options.Type is InterpreterType.Legacy ? 500 : 700;
+        var instructionsPerSecond = Options.Type is InterpreterType.Classic ? 500 : 700;
         _instructionTick = TimeSpan.FromSeconds(1.0 / instructionsPerSecond);
 
-        DisplayBuffer = new byte[Options.Type is InterpreterType.Legacy ? 64 * 32 : 128 * 64];
+        DisplayBuffer = new byte[Options.Type is InterpreterType.Classic ? 64 * 32 : 128 * 64];
         _legacyDrawAllowed = true;
     }
 
@@ -294,7 +294,7 @@ internal class Interpreter : IDisposable
 
     internal bool TryBeginDraw()
     {
-        if (Options.Type is not InterpreterType.Legacy)
+        if (Options.Type is not InterpreterType.Classic)
         {
             return true;
         }
@@ -435,7 +435,7 @@ internal class Interpreter : IDisposable
                 DelayTimer--;
             }
 
-            if (Options.Type is InterpreterType.Legacy)
+            if (Options.Type is InterpreterType.Classic)
             {
                 _legacyDrawAllowed = true;
             }

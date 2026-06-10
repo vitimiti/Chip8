@@ -27,7 +27,7 @@ internal record BinaryXorInstruction(Interpreter Interpreter, ushort OpCode)
     public override void Execute()
     {
         Interpreter.V[X] ^= Interpreter.V[Y];
-        if (Interpreter.Options.Type is InterpreterType.Legacy)
+        if (Interpreter.Options.Type is InterpreterType.Classic)
         {
             Interpreter.V[0xF] = 0;
         }
