@@ -88,6 +88,7 @@ internal class Interpreter : IDisposable
         _instructionTick = TimeSpan.FromSeconds(1.0 / instructionsPerSecond);
 
         DisplayBuffer = new byte[Options.Type is InterpreterType.Classic ? 64 * 32 : 128 * 64];
+        IsHighResolution = Options.Type is not InterpreterType.Classic;
         _legacyDrawAllowed = true;
     }
 
@@ -112,6 +113,8 @@ internal class Interpreter : IDisposable
     internal bool[] Keypad { get; private set; } = new bool[0x10];
 
     internal byte? Fx0AKeyCandidate { get; set; }
+
+    internal bool IsHighResolution { get; private set; }
 
     public void Run()
     {
@@ -184,6 +187,7 @@ internal class Interpreter : IDisposable
         _instructionAccumulator = TimeSpan.Zero;
         _timerAccumulator = TimeSpan.Zero;
         _legacyDrawAllowed = true;
+        IsHighResolution = Options.Type is not InterpreterType.Classic;
         _romLoaded = false;
     }
 
@@ -308,6 +312,16 @@ internal class Interpreter : IDisposable
         return true;
     }
 
+    internal void SetDisplayMode(bool highResolution)
+    {
+        if (Options.Type is InterpreterType.Classic)
+        {
+            return;
+        }
+
+        IsHighResolution = highResolution;
+    }
+
     private ushort Fetch()
     {
         var opCode = BinaryPrimitives.ReadUInt16BigEndian(Memory.Span.Slice(ProgramCounter, 2));
@@ -323,6 +337,8 @@ internal class Interpreter : IDisposable
             {
                 0x00E0 => new ClearScreenInstruction(this, opCode),
                 0x00EE => new ReturnFromSubroutineInstruction(this, opCode),
+                0x00FE => new SetLowResolutionInstruction(this, opCode),
+                0x00FF => new SetHighResolutionInstruction(this, opCode),
                 _ => new UnknownInstruction(_logger, this, opCode),
             },
             0x1000 => new JumpInstruction(this, opCode),
