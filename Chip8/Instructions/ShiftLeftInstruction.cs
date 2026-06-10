@@ -31,8 +31,8 @@ internal record ShiftLeftInstruction(Interpreter Interpreter, ushort OpCode)
             Interpreter.V[X] = Interpreter.V[Y];
         }
 
-        Interpreter.V[X] <<= 1;
         Interpreter.V[0xF] = (byte)((Interpreter.V[X] & 0x80) >> 7);
+        Interpreter.V[X] <<= 1;
     }
 
     public override string ToString() => $"(0x{OpCode:X4})\tSHL V{X:X}";
