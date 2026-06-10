@@ -114,7 +114,7 @@ public class SdlNativeContext : INativeContext
 
         SDL_SetMainReady();
         _logObject = new SafeLogObject(_logger);
-        if (!SDL_SetAppMetadata("CHIP-8 Interpreter", "0.1.0", "io.github.vitimiti.chip8"))
+        if (!SDL_SetAppMetadata("CHIP-8 Interpreter", "1.0.0", "io.github.vitimiti.chip8"))
         {
             throw new InvalidOperationException(
                 $"Failed to set SDL application metadata: {SDL_GetError()}."
