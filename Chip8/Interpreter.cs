@@ -73,6 +73,7 @@ internal class Interpreter : IDisposable
     private bool _waitingForRomSelection;
     private bool _pausedBeforeRomSelection;
     private long _nextDrawAllowedTimestamp;
+    private bool _showDebugOverlay;
     private bool _disposedValue;
 
     public Interpreter(
@@ -90,6 +91,7 @@ internal class Interpreter : IDisposable
         DisplayBuffer = new byte[128 * 64];
         IsHighResolution = false;
         _nextDrawAllowedTimestamp = 0;
+        _showDebugOverlay = false;
     }
 
     internal InterpreterOptions Options { get; }
@@ -153,6 +155,8 @@ internal class Interpreter : IDisposable
             Options.IncrementIOnFx55Fx65 = !Options.IncrementIOnFx55Fx65;
         _nativeContext.UseLegacyShiftSourceQuirkToggleRequested += (_, _) =>
             Options.UseLegacyShiftSourceQuirk = !Options.UseLegacyShiftSourceQuirk;
+        _nativeContext.DebugOverlayToggleRequested += (_, _) =>
+            _showDebugOverlay = !_showDebugOverlay;
 
         Font.CopyTo(Memory.Span[GlyphStartAddress..]);
     }
@@ -285,8 +289,22 @@ internal class Interpreter : IDisposable
             throw new InvalidOperationException("Native context is not initialized.");
         }
 
-        _nativeContext.Draw(gameTime, DisplayBuffer);
+        _nativeContext.Draw(gameTime, DisplayBuffer, BuildDebugSnapshot());
     }
+
+    private EmulatorDebugSnapshot BuildDebugSnapshot() =>
+        new()
+        {
+            VRegisters = [.. V],
+            IRegister = I,
+            IsSoundOn = SoundTimer > 0,
+            InterpreterType = Options.Type,
+            IsHighResolution = IsHighResolution,
+            SetVfOnFx1EOverflow = Options.SetVfOnFx1EOverflow,
+            IncrementIOnFx55Fx65 = Options.IncrementIOnFx55Fx65,
+            UseLegacyShiftSourceQuirk = Options.UseLegacyShiftSourceQuirk,
+            ShowDebugOverlay = _showDebugOverlay,
+        };
 
     private void ExecutePendingInstructions(GameTime gameTime)
     {

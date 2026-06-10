@@ -475,7 +475,17 @@ internal static unsafe partial class Ffi
 
     public readonly record struct SDL_RendererLogicalPresentation(int Value);
 
+    public static SDL_RendererLogicalPresentation SDL_LOGICAL_PRESENTATION_DISABLED => new(0);
     public static SDL_RendererLogicalPresentation SDL_LOGICAL_PRESENTATION_LETTERBOX => new(2);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct SDL_FRect
+    {
+        public float X;
+        public float Y;
+        public float W;
+        public float H;
+    }
 
     [NativeMarshalling(typeof(SafeHandleMarshaller<SDL_Renderer>))]
     public sealed class SDL_Renderer : SafeHandleZeroOrMinusOneIsInvalid
@@ -532,6 +542,26 @@ internal static unsafe partial class Ffi
 
     [LibraryImport(LibSdl3)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool SDL_RenderRect(SDL_Renderer renderer, in SDL_FRect rect);
+
+    [LibraryImport(LibSdl3)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool SDL_RenderFillRect(SDL_Renderer renderer, in SDL_FRect rect);
+
+    [LibraryImport(LibSdl3, StringMarshalling = StringMarshalling.Utf8)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool SDL_RenderDebugText(
+        SDL_Renderer renderer,
+        float x,
+        float y,
+        string str
+    );
+
+    [LibraryImport(LibSdl3)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     private static partial void SDL_DestroyRenderer(nint renderer);
 
     #endregion // SDL_render.h
@@ -567,6 +597,7 @@ internal static unsafe partial class Ffi
     public static SDL_Scancode SDL_SCANCODE_F5 => new(62);
     public static SDL_Scancode SDL_SCANCODE_F6 => new(63);
     public static SDL_Scancode SDL_SCANCODE_F7 => new(64);
+    public static SDL_Scancode SDL_SCANCODE_F8 => new(65);
     public static SDL_Scancode SDL_SCANCODE_ESCAPE => new(41);
     public static SDL_Scancode SDL_SCANCODE_SPACE => new(44);
     public static SDL_Scancode SDL_SCANCODE_LCTRL => new(224);
@@ -622,6 +653,11 @@ internal static unsafe partial class Ffi
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     [return: MarshalAs(UnmanagedType.I1)]
     public static partial bool SDL_SetWindowSize(SDL_Window window, int w, int h);
+
+    [LibraryImport(LibSdl3)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool SDL_GetWindowSize(SDL_Window window, out int w, out int h);
 
     #endregion // SDL_video.h
 }

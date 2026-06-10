@@ -19,6 +19,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
+using System.Text;
 using Chip8.Abstractions;
 using Chip8.Common;
 using Chip8.Common.Configurations;
@@ -224,10 +225,11 @@ public class SdlNativeDisplay : INativeDisplay
         }
     }
 
-    public void Draw(GameTime gameTime, byte[] displayBuffer)
+    public void Draw(GameTime gameTime, byte[] displayBuffer, EmulatorDebugSnapshot debugSnapshot)
     {
         ArgumentNullException.ThrowIfNull(gameTime);
         ArgumentNullException.ThrowIfNull(displayBuffer);
+        ArgumentNullException.ThrowIfNull(debugSnapshot);
         ObjectDisposedException.ThrowIf(_disposedValue, this);
 
         if (_renderer is null)
@@ -243,6 +245,11 @@ public class SdlNativeDisplay : INativeDisplay
         if (RomSelected)
         {
             UpdateScreen(gameTime, displayBuffer);
+        }
+
+        if (debugSnapshot.ShowDebugOverlay)
+        {
+            RenderDebugPanels(debugSnapshot);
         }
 
         if (!SDL_RenderPresent(_renderer))
@@ -320,6 +327,190 @@ public class SdlNativeDisplay : INativeDisplay
 
     private static Size GetDisplaySize(InterpreterType interpreterType) =>
         interpreterType is InterpreterType.Classic ? new Size(64, 32) : new Size(128, 64);
+
+    private void RenderDebugPanels(EmulatorDebugSnapshot debugSnapshot)
+    {
+        if (_renderer is null || _window is null)
+        {
+            throw new InvalidOperationException("SDL renderer or window is not initialized.");
+        }
+
+        if (!SDL_SetRenderLogicalPresentation(_renderer, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED))
+        {
+            throw new InvalidOperationException(
+                $"Failed to disable SDL logical presentation: {SDL_GetError()}."
+            );
+        }
+
+        if (!SDL_GetWindowSize(_window, out var windowWidth, out var windowHeight))
+        {
+            throw new InvalidOperationException(
+                $"Failed to get SDL window size: {SDL_GetError()}."
+            );
+        }
+
+        var margin = 8F;
+        var gap = 8F;
+        var leftWidth = (windowWidth - (margin * 3)) * 0.45F;
+        var topHeight = (windowHeight - (margin * 3)) * 0.45F;
+        var bottomHeight = windowHeight - (margin * 3) - topHeight;
+        var rightWidth = windowWidth - (margin * 3) - leftWidth;
+
+        var keybindingsBox = new SDL_FRect
+        {
+            X = margin,
+            Y = margin,
+            W = leftWidth,
+            H = topHeight,
+        };
+
+        var optionsBox = new SDL_FRect
+        {
+            X = margin,
+            Y = margin + topHeight + gap,
+            W = leftWidth,
+            H = bottomHeight,
+        };
+
+        var registersBox = new SDL_FRect
+        {
+            X = margin + leftWidth + gap,
+            Y = margin,
+            W = rightWidth,
+            H = windowHeight - (margin * 2),
+        };
+
+        RenderDebugBox(keybindingsBox, "KEYBINDINGS", GetKeybindingLines());
+        RenderDebugBox(optionsBox, "ACTIVE OPTIONS", GetOptionLines(debugSnapshot));
+        RenderDebugBox(registersBox, "REGISTERS", GetRegisterLines(debugSnapshot));
+
+        if (
+            !SDL_SetRenderLogicalPresentation(
+                _renderer,
+                _displaySize.Width,
+                _displaySize.Height,
+                SDL_LOGICAL_PRESENTATION_LETTERBOX
+            )
+        )
+        {
+            throw new InvalidOperationException(
+                $"Failed to restore SDL logical presentation: {SDL_GetError()}."
+            );
+        }
+    }
+
+    private void RenderDebugBox(SDL_FRect box, string title, IReadOnlyList<string> lines)
+    {
+        if (_renderer is null)
+        {
+            throw new InvalidOperationException("SDL renderer is not initialized.");
+        }
+
+        if (!SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 230))
+        {
+            throw new InvalidOperationException(
+                $"Failed to set SDL renderer draw color: {SDL_GetError()}."
+            );
+        }
+
+        if (!SDL_RenderFillRect(_renderer, in box))
+        {
+            throw new InvalidOperationException($"Failed to draw SDL box fill: {SDL_GetError()}.");
+        }
+
+        if (!SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255))
+        {
+            throw new InvalidOperationException(
+                $"Failed to set SDL renderer draw color: {SDL_GetError()}."
+            );
+        }
+
+        if (!SDL_RenderRect(_renderer, in box))
+        {
+            throw new InvalidOperationException(
+                $"Failed to draw SDL box border: {SDL_GetError()}."
+            );
+        }
+
+        if (!SDL_RenderDebugText(_renderer, box.X + 6, box.Y + 6, title))
+        {
+            throw new InvalidOperationException(
+                $"Failed to draw SDL debug text: {SDL_GetError()}."
+            );
+        }
+
+        var textY = box.Y + 20;
+        foreach (var line in lines)
+        {
+            if (textY + 8 > box.Y + box.H - 4)
+            {
+                break;
+            }
+
+            if (!SDL_RenderDebugText(_renderer, box.X + 6, textY, line))
+            {
+                throw new InvalidOperationException(
+                    $"Failed to draw SDL debug text: {SDL_GetError()}."
+                );
+            }
+
+            textY += 10;
+        }
+    }
+
+    private static IReadOnlyList<string> GetKeybindingLines() =>
+        [
+            "EMU:",
+            " ESC      quit",
+            " SPACE    pause",
+            " CTRL+O   open rom",
+            " CTRL+R   reset rom",
+            " F1..F4   mode",
+            "QUIRKS:",
+            " F5       fx1e vf",
+            " F6       fx55/65 I",
+            " F7       shift src",
+            " F8       debug hud",
+        ];
+
+    private static IReadOnlyList<string> GetOptionLines(EmulatorDebugSnapshot debugSnapshot) =>
+        [
+            $"TYPE: {debugSnapshot.InterpreterType}",
+            $"RES: {(debugSnapshot.IsHighResolution ? "HIRES" : "LORES")}",
+            $"F5 FX1E VF: {(debugSnapshot.SetVfOnFx1EOverflow ? "ON" : "OFF")}",
+            $"F6 FX55/65 I: {(debugSnapshot.IncrementIOnFx55Fx65 ? "ON" : "OFF")}",
+            $"F7 SHIFT SRC: {(debugSnapshot.UseLegacyShiftSourceQuirk ? "VY" : "VX")}",
+            $"SOUND: {(debugSnapshot.IsSoundOn ? "ON" : "OFF")}",
+        ];
+
+    private static IReadOnlyList<string> GetRegisterLines(EmulatorDebugSnapshot debugSnapshot)
+    {
+        var lines = new List<string>
+        {
+            $"I  : 0x{debugSnapshot.IRegister:X4}",
+            $"SND: {(debugSnapshot.IsSoundOn ? "ON" : "OFF")}",
+            string.Empty,
+        };
+
+        for (var i = 0; i < 16; i += 4)
+        {
+            var line = new StringBuilder();
+            for (var offset = 0; offset < 4; offset++)
+            {
+                var registerIndex = i + offset;
+                if (offset > 0)
+                {
+                    line.Append("  ");
+                }
+
+                line.Append($"V{registerIndex:X1}:0x{debugSnapshot.VRegisters[registerIndex]:X2}");
+            }
+
+            lines.Add(line.ToString());
+        }
+
+        return lines;
+    }
 
     protected virtual void Dispose(bool disposing)
     {

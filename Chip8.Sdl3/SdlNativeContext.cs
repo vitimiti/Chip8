@@ -38,6 +38,7 @@ public class SdlNativeContext : INativeContext
     public event EventHandler? SetVfOnFx1EOverflowToggleRequested;
     public event EventHandler? IncrementIOnFx55Fx65ToggleRequested;
     public event EventHandler? UseLegacyShiftSourceQuirkToggleRequested;
+    public event EventHandler? DebugOverlayToggleRequested;
 
     private readonly ILogger<SdlNativeContext> _logger;
 
@@ -189,6 +190,12 @@ public class SdlNativeContext : INativeContext
             return;
         }
 
+        if (scancode == SDL_SCANCODE_F8)
+        {
+            DebugOverlayToggleRequested?.Invoke(this, EventArgs.Empty);
+            return;
+        }
+
         if (scancode == SDL_SCANCODE_ESCAPE)
         {
             QuitRequested?.Invoke(this, new QuitEventArgs(timestamp));
@@ -242,10 +249,11 @@ public class SdlNativeContext : INativeContext
             || scancode == SDL_SCANCODE_F4;
     }
 
-    public void Draw(GameTime gameTime, byte[] displayBuffer)
+    public void Draw(GameTime gameTime, byte[] displayBuffer, EmulatorDebugSnapshot debugSnapshot)
     {
         ArgumentNullException.ThrowIfNull(gameTime);
         ArgumentNullException.ThrowIfNull(displayBuffer);
+        ArgumentNullException.ThrowIfNull(debugSnapshot);
         ObjectDisposedException.ThrowIf(_disposedValue, this);
 
         if (_display is null)
@@ -253,7 +261,7 @@ public class SdlNativeContext : INativeContext
             throw new InvalidOperationException("Display is not initialized.");
         }
 
-        _display.Draw(gameTime, displayBuffer);
+        _display.Draw(gameTime, displayBuffer, debugSnapshot);
     }
 
     protected virtual void Dispose(bool disposing)

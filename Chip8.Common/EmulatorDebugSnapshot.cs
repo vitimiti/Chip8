@@ -17,32 +17,27 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-using Chip8.Common;
 using Chip8.Common.Configurations;
 
-namespace Chip8.Abstractions;
+namespace Chip8.Common;
 
-public interface INativeDisplay : IDisposable
+public sealed class EmulatorDebugSnapshot
 {
-    bool RomSelected { get; }
+    public required byte[] VRegisters { get; set; }
 
-    string? SelectedRomPath { get; }
+    public required ushort IRegister { get; set; }
 
-    bool IsRomSelectionInProgress { get; }
+    public required bool IsSoundOn { get; set; }
 
-    bool RomReloadRequested { get; }
+    public required InterpreterType InterpreterType { get; set; }
 
-    void Initialize();
+    public required bool IsHighResolution { get; set; }
 
-    bool[] SyncKeypad();
+    public required bool SetVfOnFx1EOverflow { get; set; }
 
-    void BeginRomSelection();
+    public required bool IncrementIOnFx55Fx65 { get; set; }
 
-    void ClearRomReloadRequest();
+    public required bool UseLegacyShiftSourceQuirk { get; set; }
 
-    void Update(GameTime gameTime);
-
-    void Draw(GameTime gameTime, byte[] displayBuffer, EmulatorDebugSnapshot debugSnapshot);
-
-    void SetInterpreterType(InterpreterType interpreterType);
+    public required bool ShowDebugOverlay { get; set; }
 }

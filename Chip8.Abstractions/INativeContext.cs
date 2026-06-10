@@ -40,6 +40,8 @@ public interface INativeContext : IDisposable
 
     event EventHandler? UseLegacyShiftSourceQuirkToggleRequested;
 
+    event EventHandler? DebugOverlayToggleRequested;
+
     INativeAudio? Audio { get; }
 
     INativeDisplay? Display { get; }
@@ -48,5 +50,5 @@ public interface INativeContext : IDisposable
 
     void Update(GameTime gameTime);
 
-    void Draw(GameTime gameTime, byte[] displayBuffer);
+    void Draw(GameTime gameTime, byte[] displayBuffer, EmulatorDebugSnapshot debugSnapshot);
 }
