@@ -242,6 +242,7 @@ internal class Interpreter : IDisposable
             0xF000 => (opCode & 0x00FF) switch
             {
                 0x0007 => new LoadDelayTimerInstruction(this, opCode),
+                0x000A => new GetKeyInstruction(this, opCode),
                 0x0015 => new SetDelayTimerInstruction(this, opCode),
                 0x0018 => new SetSoundTimerInstruction(this, opCode),
                 0x001E => new AddToIndexInstruction(this, opCode),
