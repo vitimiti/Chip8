@@ -86,6 +86,29 @@ jobs:
                   name: publish-${{ matrix.rid }}
                   path: artifacts/publish/${{ matrix.rid }}
 
+            - name: Package publish output per runtime
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  rid="${{ matrix.rid }}"
+                  tag="${{ steps.version.outputs.tag }}"
+                  source_dir="artifacts/publish/${rid}"
+                  mkdir -p artifacts/packages
+
+                  if [[ "$rid" == win-* ]]; then
+                    archive="artifacts/packages/chip8-${tag}-${rid}.zip"
+                    (cd "$source_dir" && zip -qr "${GITHUB_WORKSPACE}/${archive}" .)
+                  else
+                    archive="artifacts/packages/chip8-${tag}-${rid}.tar.gz"
+                    tar -czf "$archive" -C "$source_dir" .
+                  fi
+
+            - name: Upload runtime package artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: package-${{ matrix.rid }}
+                  path: artifacts/packages/*
+
     windows-installer:
         name: Windows Installers
         needs: publish
@@ -262,6 +285,12 @@ jobs:
                   pattern: publish-*
                   path: release-assets/publish
 
+            - name: Download runtime packages
+              uses: actions/download-artifact@v4
+              with:
+                  pattern: package-*
+                  path: release-assets/packages
+
             - name: Download Windows installers
               uses: actions/download-artifact@v4
               with:
@@ -281,21 +310,6 @@ jobs:
                   name: macos-dmg-osx-arm64
                   path: release-assets/macos
 
-            - name: Archive publish outputs per runtime
-              shell: bash
-              run: |
-                  set -euo pipefail
-                  mkdir -p release-assets/bundles
-                  shopt -s nullglob
-
-                  for dir in release-assets/publish/publish-*; do
-                    if [[ -d "$dir" ]]; then
-                      base_name="$(basename "$dir")"
-                      archive_name="${base_name}.tar.gz"
-                      tar -czf "release-assets/bundles/${archive_name}" -C "$(dirname "$dir")" "$base_name"
-                    fi
-                  done
-
             - name: Create GitHub Release
               uses: softprops/action-gh-release@v2
               with:
@@ -303,7 +317,8 @@ jobs:
                   name: ${{ github.ref_name }}
                   generate_release_notes: true
                   files: |
-                      release-assets/bundles/*.tar.gz
+                      release-assets/packages/**/*.zip
+                      release-assets/packages/**/*.tar.gz
                       release-assets/windows-installers/*.exe
                       release-assets/flatpak/*.flatpak
                       release-assets/macos/*.dmg
