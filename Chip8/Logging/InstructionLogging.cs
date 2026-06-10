@@ -26,7 +26,7 @@ internal static partial class InstructionLogging
 {
     [LoggerMessage(
         EventId = 2000,
-        Level = LogLevel.Debug,
+        Level = LogLevel.Trace,
         Message = "Executing instruction: ${ProgramCounter:X4}:{Instruction}"
     )]
     public static partial void ExecutingInstruction(
