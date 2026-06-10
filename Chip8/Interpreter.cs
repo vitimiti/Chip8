@@ -331,6 +331,140 @@ internal class Interpreter : IDisposable
         _nextDrawAllowedTimestamp = 0;
     }
 
+    internal void ScrollDisplayDown(byte lines)
+    {
+        var (displayWidth, displayHeight) = GetPhysicalDisplaySize();
+        var amount = GetVerticalScrollAmount(lines);
+        if (amount <= 0)
+        {
+            return;
+        }
+
+        if (amount >= displayHeight)
+        {
+            DisplayBuffer.AsSpan().Clear();
+            return;
+        }
+
+        for (var y = displayHeight - 1; y >= amount; y--)
+        {
+            var dst = y * displayWidth;
+            var src = (y - amount) * displayWidth;
+            Array.Copy(DisplayBuffer, src, DisplayBuffer, dst, displayWidth);
+        }
+
+        DisplayBuffer.AsSpan(0, amount * displayWidth).Clear();
+    }
+
+    internal void ScrollDisplayUp(byte lines)
+    {
+        var (displayWidth, displayHeight) = GetPhysicalDisplaySize();
+        var amount = GetVerticalScrollAmount(lines);
+        if (amount <= 0)
+        {
+            return;
+        }
+
+        if (amount >= displayHeight)
+        {
+            DisplayBuffer.AsSpan().Clear();
+            return;
+        }
+
+        for (var y = 0; y < displayHeight - amount; y++)
+        {
+            var dst = y * displayWidth;
+            var src = (y + amount) * displayWidth;
+            Array.Copy(DisplayBuffer, src, DisplayBuffer, dst, displayWidth);
+        }
+
+        DisplayBuffer
+            .AsSpan((displayHeight - amount) * displayWidth, amount * displayWidth)
+            .Clear();
+    }
+
+    internal void ScrollDisplayRight()
+    {
+        var (displayWidth, displayHeight) = GetPhysicalDisplaySize();
+        var amount = GetHorizontalScrollAmount();
+        if (amount <= 0)
+        {
+            return;
+        }
+
+        if (amount >= displayWidth)
+        {
+            DisplayBuffer.AsSpan().Clear();
+            return;
+        }
+
+        for (var y = 0; y < displayHeight; y++)
+        {
+            var rowStart = y * displayWidth;
+            for (var x = displayWidth - 1; x >= amount; x--)
+            {
+                DisplayBuffer[rowStart + x] = DisplayBuffer[rowStart + x - amount];
+            }
+
+            DisplayBuffer.AsSpan(rowStart, amount).Clear();
+        }
+    }
+
+    internal void ScrollDisplayLeft()
+    {
+        var (displayWidth, displayHeight) = GetPhysicalDisplaySize();
+        var amount = GetHorizontalScrollAmount();
+        if (amount <= 0)
+        {
+            return;
+        }
+
+        if (amount >= displayWidth)
+        {
+            DisplayBuffer.AsSpan().Clear();
+            return;
+        }
+
+        for (var y = 0; y < displayHeight; y++)
+        {
+            var rowStart = y * displayWidth;
+            for (var x = 0; x < displayWidth - amount; x++)
+            {
+                DisplayBuffer[rowStart + x] = DisplayBuffer[rowStart + x + amount];
+            }
+
+            DisplayBuffer.AsSpan(rowStart + displayWidth - amount, amount).Clear();
+        }
+    }
+
+    private (int Width, int Height) GetPhysicalDisplaySize() =>
+        Options.Type is InterpreterType.Classic ? (64, 32) : (128, 64);
+
+    private bool UseLegacyLoresHalfPixelScroll() =>
+        Options.Type is InterpreterType.SuperChipLegacy && !IsHighResolution;
+
+    private int GetVerticalScrollAmount(byte lines)
+    {
+        if (UseLegacyLoresHalfPixelScroll())
+        {
+            return lines;
+        }
+
+        var pixelScale = Options.Type is not InterpreterType.Classic && !IsHighResolution ? 2 : 1;
+        return lines * pixelScale;
+    }
+
+    private int GetHorizontalScrollAmount()
+    {
+        if (UseLegacyLoresHalfPixelScroll())
+        {
+            return 4;
+        }
+
+        var pixelScale = Options.Type is not InterpreterType.Classic && !IsHighResolution ? 2 : 1;
+        return 4 * pixelScale;
+    }
+
     private ushort Fetch()
     {
         var opCode = BinaryPrimitives.ReadUInt16BigEndian(Memory.Span.Slice(ProgramCounter, 2));
@@ -346,8 +480,12 @@ internal class Interpreter : IDisposable
             {
                 0x00E0 => new ClearScreenInstruction(this, opCode),
                 0x00EE => new ReturnFromSubroutineInstruction(this, opCode),
+                0x00FB => new ScrollRightInstruction(this, opCode),
+                0x00FC => new ScrollLeftInstruction(this, opCode),
                 0x00FE => new SetLowResolutionInstruction(this, opCode),
                 0x00FF => new SetHighResolutionInstruction(this, opCode),
+                _ when (opCode & 0x00F0) == 0x00C0 => new ScrollDownInstruction(this, opCode),
+                _ when (opCode & 0x00F0) == 0x00D0 => new ScrollUpInstruction(this, opCode),
                 _ => new UnknownInstruction(_logger, this, opCode),
             },
             0x1000 => new JumpInstruction(this, opCode),
