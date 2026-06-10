@@ -112,6 +112,7 @@ internal class Interpreter : IDisposable
     [MemberNotNull(nameof(_gameTime), nameof(_nativeContext))]
     private void Initialize()
     {
+        ObjectDisposedException.ThrowIf(_disposedValue, this);
         CommonLogging.InterpreterInitialized(_logger, Options);
 
         _running = true;
@@ -126,6 +127,7 @@ internal class Interpreter : IDisposable
 
     private void Update(GameTime gameTime)
     {
+        ObjectDisposedException.ThrowIf(_disposedValue, this);
         if (_nativeContext is null)
         {
             throw new InvalidOperationException("Native context is not initialized.");
@@ -167,6 +169,7 @@ internal class Interpreter : IDisposable
 
     public void Draw(GameTime gameTime)
     {
+        ObjectDisposedException.ThrowIf(_disposedValue, this);
         if (_nativeContext is null)
         {
             throw new InvalidOperationException("Native context is not initialized.");
@@ -252,6 +255,16 @@ internal class Interpreter : IDisposable
 
     private void UpdateTimers(GameTime gameTime)
     {
+        if (_nativeContext is null)
+        {
+            throw new InvalidOperationException("Native context is not initialized.");
+        }
+
+        if (_nativeContext.Audio is null)
+        {
+            throw new InvalidOperationException("Native audio is not initialized.");
+        }
+
         // CHIP-8 delay/sound timers tick at 60Hz, independent of CPU instruction rate.
         _timerAccumulator += gameTime.DeltaTime;
         while (_timerAccumulator >= TimerTick)
@@ -264,6 +277,15 @@ internal class Interpreter : IDisposable
             if (SoundTimer > 0)
             {
                 SoundTimer--;
+                _nativeContext.Audio.RefillQueue();
+                if (_nativeContext.Audio.IsPaused())
+                {
+                    _nativeContext.Audio.Resume();
+                }
+            }
+            else if (!_nativeContext.Audio.IsPaused())
+            {
+                _nativeContext.Audio.Pause();
             }
 
             _timerAccumulator -= TimerTick;

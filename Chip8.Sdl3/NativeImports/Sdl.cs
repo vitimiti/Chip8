@@ -79,6 +79,95 @@ internal static unsafe partial class Ffi
 
     #endregion // Marshallers
 
+    #region SDL_audio.h
+
+    public readonly record struct SDL_AudioFormat(uint Value);
+
+    public static SDL_AudioFormat SDL_AUDIO_FORMAT_S16LE => new(0x0000_8010U);
+    public static SDL_AudioFormat SDL_AUDIO_FORMAT_S16BE => new(0x0000_9010U);
+    public static SDL_AudioFormat SDL_AUDIO_FORMAT_S16 =>
+        BitConverter.IsLittleEndian ? SDL_AUDIO_FORMAT_S16LE : SDL_AUDIO_FORMAT_S16BE;
+
+    public readonly record struct SDL_AudioDeviceID(uint Value)
+    {
+        public bool IsInvalid => Value == 0;
+    }
+
+    public static SDL_AudioDeviceID SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK => new(0xFFFF_FFFFU);
+
+    [NativeMarshalling(typeof(SafeHandleMarshaller<SDL_AudioStream>))]
+    public sealed class SDL_AudioStream : SafeHandleZeroOrMinusOneIsInvalid
+    {
+        public SDL_AudioStream()
+            : base(ownsHandle: true) => SetHandle(0);
+
+        protected override bool ReleaseHandle()
+        {
+            SDL_DestroyAudioStream(handle);
+            return true;
+        }
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct SDL_AudioSpec
+    {
+        public SDL_AudioFormat Format;
+        public int Channels;
+        public int Frequency;
+    }
+
+    [LibraryImport(LibSdl3)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_AudioStream SDL_OpenAudioDeviceStream(
+        SDL_AudioDeviceID devId,
+        in SDL_AudioSpec spec,
+        void* callback,
+        void* userdata
+    );
+
+    [LibraryImport(LibSdl3)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_AudioDeviceID SDL_GetAudioStreamDevice(SDL_AudioStream stream);
+
+    [LibraryImport(LibSdl3)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool SDL_SetAudioDeviceGain(SDL_AudioDeviceID devId, float gain);
+
+    [LibraryImport(LibSdl3)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool SDL_AudioStreamDevicePaused(SDL_AudioStream stream);
+
+    [LibraryImport(LibSdl3)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial int SDL_GetAudioStreamQueued(SDL_AudioStream stream);
+
+    [LibraryImport(LibSdl3)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool SDL_PutAudioStreamData(
+        SDL_AudioStream stream,
+        void* buffer,
+        int length
+    );
+
+    [LibraryImport(LibSdl3)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool SDL_ResumeAudioStreamDevice(SDL_AudioStream stream);
+
+    [LibraryImport(LibSdl3)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalAs(UnmanagedType.I1)]
+    public static partial bool SDL_PauseAudioStreamDevice(SDL_AudioStream stream);
+
+    [LibraryImport(LibSdl3)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    private static partial void SDL_DestroyAudioStream(nint stream);
+
+    #endregion // SDL_audio.h
+
     #region SDL_dialog.h
 
     [NativeMarshalling(typeof(DialogFilterMarshaller))]

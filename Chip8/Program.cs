@@ -49,6 +49,11 @@ using var services = new ServiceCollection()
             options.TimestampFormat = "[yyyy-MM-dd HH:mm:ss.fff] ";
         });
     })
+    .AddTransient<INativeAudio, SdlNativeAudio>(factory =>
+    {
+        var interpreterOptions = factory.GetRequiredService<InterpreterOptions>();
+        return new SdlNativeAudio(interpreterOptions);
+    })
     .AddTransient<INativeDisplay, SdlNativeDisplay>(factory =>
     {
         var logger = factory.GetRequiredService<ILogger<SdlNativeDisplay>>();
@@ -58,12 +63,18 @@ using var services = new ServiceCollection()
     .AddTransient<INativeContext, SdlNativeContext>(factory =>
     {
         var logger = factory.GetRequiredService<ILogger<SdlNativeContext>>();
+
+        var audio =
+            factory.GetRequiredService<INativeAudio>() as SdlNativeAudio
+            ?? throw new InvalidOperationException($"Failed to resolve {nameof(SdlNativeAudio)}.");
+
         var display =
             factory.GetRequiredService<INativeDisplay>() as SdlNativeDisplay
             ?? throw new InvalidOperationException(
                 $"Failed to resolve {nameof(SdlNativeDisplay)}."
             );
-        return new SdlNativeContext(logger, display);
+
+        return new SdlNativeContext(logger, audio, display);
     })
     .AddSingleton<Interpreter>()
     .BuildServiceProvider();

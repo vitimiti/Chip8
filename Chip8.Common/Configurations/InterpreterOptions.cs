@@ -29,4 +29,19 @@ public sealed record InterpreterOptions
     [Required]
     [Range(1, 50, ErrorMessage = "The display size multiplier must be between 1 and 50.")]
     public int DisplaySizeMultiplier { get; set; } = 10;
+
+    [Required]
+    [Range(0F, 1F, ErrorMessage = "The audio volume must be between 0.0 and 1.0.")]
+    public float AudioVolume { get; set; } = 0.01F;
+
+    [Required]
+    [Range(1, 192000, ErrorMessage = "The audio sample rate must be between 1 and 192000Hz.")]
+    public int AudioSampleRate { get; set; } = 44_100;
+
+    [Required]
+    [Range(1, 192000, ErrorMessage = "The audio frequency must be between 1 and 192000Hz.")]
+    public int AudioFrequency { get; set; } = 440;
+
+    public override string ToString() =>
+        $"Interpreter Type: {Type}, Display Size Multiplier: {DisplaySizeMultiplier}, Audio Volume: {AudioVolume:P4}";
 }

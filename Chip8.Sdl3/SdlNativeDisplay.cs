@@ -112,6 +112,8 @@ public class SdlNativeDisplay : INativeDisplay
 
     public bool[] SyncKeypad()
     {
+        ObjectDisposedException.ThrowIf(_disposedValue, this);
+
         var keyboardState = SDL_GetKeyboardState();
         foreach (var scanCode in _scanCodes.Keys)
         {

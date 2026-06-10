@@ -34,21 +34,30 @@ public class SdlNativeContext : INativeContext
     private readonly ILogger<SdlNativeContext> _logger;
 
     private SafeLogObject? _logObject;
+    private SdlNativeAudio? _audio;
     private SdlNativeDisplay? _display;
     private bool _disposedValue;
 
-    public SdlNativeContext(ILogger<SdlNativeContext> logger, SdlNativeDisplay display)
+    public SdlNativeContext(
+        ILogger<SdlNativeContext> logger,
+        SdlNativeAudio audio,
+        SdlNativeDisplay display
+    )
     {
         ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(audio);
         ArgumentNullException.ThrowIfNull(display);
 
         _logger = logger;
+        _audio = audio;
         _display = display;
     }
 
     public INativeDisplay? Display => _display;
 
-    [MemberNotNull(nameof(_logObject), nameof(_display))]
+    public INativeAudio? Audio => _audio;
+
+    [MemberNotNull(nameof(_logObject), nameof(_audio), nameof(_display))]
     public void Initialize()
     {
         ObjectDisposedException.ThrowIf(_disposedValue, this);
@@ -88,6 +97,11 @@ public class SdlNativeContext : INativeContext
             throw new InvalidOperationException("Display is not initialized.");
         }
 
+        if (_audio is null)
+        {
+            throw new InvalidOperationException("Audio is not initialized.");
+        }
+
         SDL_SetMainReady();
         _logObject = new SafeLogObject(_logger);
         if (!SDL_SetAppMetadata("CHIP-8 Interpreter", "0.1.0", "io.github.vitimiti.chip8"))
@@ -102,6 +116,7 @@ public class SdlNativeContext : INativeContext
             throw new InvalidOperationException($"Failed to initialize SDL: {SDL_GetError()}.");
         }
 
+        _audio.Initialize();
         _display.Initialize();
     }
 
@@ -150,10 +165,12 @@ public class SdlNativeContext : INativeContext
         if (disposing)
         {
             _display?.Dispose();
+            _audio?.Dispose();
             _logObject?.Dispose();
         }
 
         _display = null;
+        _audio = null;
 
         SDL_Quit();
         _logObject = null;
