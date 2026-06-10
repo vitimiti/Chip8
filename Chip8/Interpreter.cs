@@ -315,20 +315,24 @@ internal class Interpreter : IDisposable
     private void ToggleSetVfOnFx1EOverflow()
     {
         Options.SetVfOnFx1EOverflow = !Options.SetVfOnFx1EOverflow;
-        ShowStatusMessage($"SetVfOnFx1EOverflow changed to {Options.SetVfOnFx1EOverflow}");
+        ShowStatusMessage(
+            $"{nameof(InterpreterOptions.SetVfOnFx1EOverflow)} changed to {Options.SetVfOnFx1EOverflow}"
+        );
     }
 
     private void ToggleIncrementIOnFx55Fx65()
     {
         Options.IncrementIOnFx55Fx65 = !Options.IncrementIOnFx55Fx65;
-        ShowStatusMessage($"IncrementIOnFx55Fx65 changed to {Options.IncrementIOnFx55Fx65}");
+        ShowStatusMessage(
+            $"{nameof(InterpreterOptions.IncrementIOnFx55Fx65)} changed to {Options.IncrementIOnFx55Fx65}"
+        );
     }
 
     private void ToggleUseLegacyShiftSourceQuirk()
     {
         Options.UseLegacyShiftSourceQuirk = !Options.UseLegacyShiftSourceQuirk;
         ShowStatusMessage(
-            $"UseLegacyShiftSourceQuirk changed to {Options.UseLegacyShiftSourceQuirk}"
+            $"{nameof(InterpreterOptions.UseLegacyShiftSourceQuirk)} changed to {Options.UseLegacyShiftSourceQuirk}"
         );
     }
 
@@ -403,6 +407,7 @@ internal class Interpreter : IDisposable
 
         RemapDisplayBuffer(previousType, interpreterType);
         _nativeContext?.Display?.SetInterpreterType(interpreterType);
+        ShowStatusMessage($"{nameof(InterpreterOptions.Type)} changed to {interpreterType}");
     }
 
     private void RemapDisplayBuffer(InterpreterType fromType, InterpreterType toType)

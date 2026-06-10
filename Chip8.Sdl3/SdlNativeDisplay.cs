@@ -377,13 +377,22 @@ public class SdlNativeDisplay : INativeDisplay
         var registersBox = new SDL_FRect
         {
             X = margin + leftWidth + gap,
+            Y = margin + topHeight + gap,
+            W = rightWidth,
+            H = bottomHeight,
+        };
+
+        var keypadBox = new SDL_FRect
+        {
+            X = margin + leftWidth + gap,
             Y = margin,
             W = rightWidth,
-            H = windowHeight - (margin * 2),
+            H = topHeight,
         };
 
         RenderDebugBox(keybindingsBox, "KEYBINDINGS", GetKeybindingLines());
         RenderDebugBox(optionsBox, "ACTIVE OPTIONS", GetOptionLines(debugSnapshot));
+        RenderDebugBox(keypadBox, "KEYPAD MAP", GetKeypadMapLines());
         RenderDebugBox(registersBox, "REGISTERS", GetRegisterLines(debugSnapshot));
 
         if (
@@ -473,6 +482,25 @@ public class SdlNativeDisplay : INativeDisplay
             " F6       fx55/65 I",
             " F7       shift src",
             " F8       debug hud",
+        ];
+
+    [SuppressMessage(
+        "csharpsquid",
+        "S1192:String literals should not be duplicated",
+        Justification = "This is a grid and we need to see the way it looks."
+    )]
+    private static IReadOnlyList<string> GetKeypadMapLines() =>
+        [
+            "KEYBOARD           CHIP-8",
+            "+---+---+---+---+  +---+---+---+---+",
+            "| 1 | 2 | 3 | 4 |  | 1 | 2 | 3 | C |",
+            "+---+---+---+---+  +---+---+---+---+",
+            "| Q | W | E | R |  | 4 | 5 | 6 | D |",
+            "+---+---+---+---+  +---+---+---+---+",
+            "| A | S | D | F |  | 7 | 8 | 9 | E |",
+            "+---+---+---+---+  +---+---+---+---+",
+            "| Z | X | C | V |  | A | 0 | B | F |",
+            "+---+---+---+---+  +---+---+---+---+",
         ];
 
     private void RenderStatusToast(EmulatorDebugSnapshot debugSnapshot)
