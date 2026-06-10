@@ -87,6 +87,7 @@ jobs:
                   path: artifacts/publish/${{ matrix.rid }}
 
             - name: Package publish output per runtime
+              if: matrix.rid != 'osx-arm64'
               shell: bash
               run: |
                   set -euo pipefail
@@ -104,6 +105,7 @@ jobs:
                   fi
 
             - name: Upload runtime package artifact
+              if: matrix.rid != 'osx-arm64'
               uses: actions/upload-artifact@v4
               with:
                   name: package-${{ matrix.rid }}
@@ -198,6 +200,11 @@ jobs:
                   set -euo pipefail
                   flatpak-builder --force-clean --user --install-deps-from=flathub --repo=repo build-flatpak packaging/flatpak/io.github.vitimiti.chip8.yml
 
+            - name: Verify Flatpak includes libSDL3.so
+              run: |
+                  set -euo pipefail
+                  flatpak build build-flatpak sh -lc 'ls /app/lib/libSDL3.so* >/dev/null 2>&1'
+
             - name: Bundle Flatpak
               run: |
                   set -euo pipefail
@@ -210,10 +217,9 @@ jobs:
                   path: chip8-linux-x64.flatpak
 
     macos-dmg:
-        name: macOS DMG (optional)
+        name: macOS DMG
         needs: publish
         runs-on: macos-latest
-        continue-on-error: true
 
         steps:
             - name: Checkout
@@ -225,6 +231,34 @@ jobs:
                   name: publish-osx-arm64
                   path: artifacts/publish/osx-arm64
 
+            - name: Download SDL3 3.4.10 macOS runtime
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  curl -fL -o sdl3-macos.dmg https://github.com/libsdl-org/SDL/releases/download/release-3.4.10/SDL3-3.4.10.dmg
+                  hdiutil attach sdl3-macos.dmg -mountpoint /Volumes/SDL3
+
+            - name: Extract SDL3 dylib
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  mkdir -p artifacts/sdl3
+
+                  dylib_path="$(find /Volumes/SDL3 -type f -name 'libSDL3*.dylib' | head -n 1)"
+                  if [[ -n "${dylib_path}" ]]; then
+                    cp "${dylib_path}" artifacts/sdl3/libSDL3.dylib
+                  else
+                    framework_binary="$(find /Volumes/SDL3 -type f -path '*SDL3.framework/Versions/A/SDL3' | head -n 1)"
+                    if [[ -z "${framework_binary}" ]]; then
+                      echo "Could not find libSDL3*.dylib or SDL3.framework binary in SDL3-3.4.10.dmg"
+                      exit 1
+                    fi
+
+                    cp "${framework_binary}" artifacts/sdl3/libSDL3.dylib
+                  fi
+
+                  hdiutil detach /Volumes/SDL3
+
             - name: Create app bundle
               shell: bash
               run: |
@@ -232,7 +266,29 @@ jobs:
                   mkdir -p dist/Chip8.app/Contents/MacOS
                   mkdir -p dist/Chip8.app/Contents/Resources
                   cp -R artifacts/publish/osx-arm64/* dist/Chip8.app/Contents/MacOS/
+                  cp artifacts/sdl3/libSDL3.dylib dist/Chip8.app/Contents/MacOS/libSDL3.dylib
                   chmod +x dist/Chip8.app/Contents/MacOS/Chip8 || true
+
+            - name: Package osx-arm64 runtime output
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  version="${{ github.ref_name }}"
+                  source_dir="artifacts/publish/osx-arm64"
+                  cp artifacts/sdl3/libSDL3.dylib "${source_dir}/libSDL3.dylib"
+                  mkdir -p artifacts/packages
+                  tar -czf "artifacts/packages/chip8-${version}-osx-arm64.tar.gz" -C "${source_dir}" .
+
+            - name: Upload osx-arm64 runtime package artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: package-osx-arm64
+                  path: artifacts/packages/*.tar.gz
+
+            - name: Create Info.plist
+              shell: bash
+              run: |
+                  set -euo pipefail
 
                   cat > dist/Chip8.app/Contents/Info.plist <<'PLIST'
                   <?xml version="1.0" encoding="UTF-8"?>
@@ -303,12 +359,32 @@ jobs:
                   name: flatpak-linux-x64
                   path: release-assets/flatpak
 
-            - name: Download macOS DMG (if available)
+            - name: Download macOS DMG
               uses: actions/download-artifact@v4
-              continue-on-error: true
               with:
                   name: macos-dmg-osx-arm64
                   path: release-assets/macos
+
+            - name: Generate checksums
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  mkdir -p release-assets/checksums
+                  output_file="release-assets/checksums/SHA256SUMS.txt"
+                  : > "$output_file"
+
+                  mapfile -t files < <(find release-assets \( -path 'release-assets/packages/*.zip' -o -path 'release-assets/packages/*.tar.gz' -o -path 'release-assets/windows-installers/*.exe' -o -path 'release-assets/flatpak/*.flatpak' -o -path 'release-assets/macos/*.dmg' \) -type f | sort)
+
+                  if [[ ${#files[@]} -eq 0 ]]; then
+                    echo "No release files found for checksum generation."
+                    exit 1
+                  fi
+
+                  for file in "${files[@]}"; do
+                    sha256sum "$file" >> "$output_file"
+                    checksum="$(sha256sum "$file" | awk '{print $1}')"
+                    printf "%s  %s\n" "$checksum" "$(basename "$file")" > "release-assets/checksums/$(basename "$file").sha256"
+                  done
 
             - name: Create GitHub Release
               uses: softprops/action-gh-release@v2
@@ -322,3 +398,5 @@ jobs:
                       release-assets/windows-installers/*.exe
                       release-assets/flatpak/*.flatpak
                       release-assets/macos/*.dmg
+                      release-assets/checksums/SHA256SUMS.txt
+                      release-assets/checksums/*.sha256
