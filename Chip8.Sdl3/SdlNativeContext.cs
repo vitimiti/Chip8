@@ -30,6 +30,7 @@ namespace Chip8.Sdl3;
 public class SdlNativeContext : INativeContext
 {
     public event EventHandler<QuitEventArgs>? QuitRequested;
+    public event EventHandler? PauseToggleRequested;
 
     private readonly ILogger<SdlNativeContext> _logger;
 
@@ -135,6 +136,18 @@ public class SdlNativeContext : INativeContext
             if (e.Type == SDL_EVENT_QUIT)
             {
                 QuitRequested?.Invoke(this, new QuitEventArgs(gameTime.TotalTime));
+            }
+
+            if (e.Type == SDL_EVENT_KEY_DOWN)
+            {
+                if (e.Key.Scancode == SDL_SCANCODE_ESCAPE)
+                {
+                    QuitRequested?.Invoke(this, new QuitEventArgs(gameTime.TotalTime));
+                }
+                else if (e.Key.Scancode == SDL_SCANCODE_SPACE)
+                {
+                    PauseToggleRequested?.Invoke(this, EventArgs.Empty);
+                }
             }
         }
 

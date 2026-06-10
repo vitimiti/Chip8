@@ -30,10 +30,13 @@ namespace Chip8;
 
 internal class Interpreter : IDisposable
 {
-    private static readonly TimeSpan TimerTick = TimeSpan.FromSeconds(1.0 / 60.0);
+    private const string NativeContextNotInitializedMessage = "Native context is not initialized.";
+    private const string NativeAudioNotInitializedMessage = "Native audio is not initialized.";
 
     public const ushort GlyphStartAddress = 0x0050;
     public const ushort GlyphHeight = 5;
+
+    private static readonly TimeSpan TimerTick = TimeSpan.FromSeconds(1.0 / 60.0);
 
     // csharpier-ignore
     private static readonly byte[] Font = [
@@ -65,6 +68,7 @@ internal class Interpreter : IDisposable
     private bool _romLoaded;
     private TimeSpan _instructionAccumulator;
     private TimeSpan _timerAccumulator;
+    private bool _paused;
     private bool _disposedValue;
 
     public Interpreter(
@@ -129,6 +133,7 @@ internal class Interpreter : IDisposable
         _nativeContext = _nativeContext1;
         _nativeContext.Initialize();
         _nativeContext.QuitRequested += (_, _) => _running = false;
+        _nativeContext.PauseToggleRequested += (_, _) => _paused = !_paused;
 
         Font.CopyTo(Memory.Span[GlyphStartAddress..]);
     }
@@ -138,7 +143,7 @@ internal class Interpreter : IDisposable
         ObjectDisposedException.ThrowIf(_disposedValue, this);
         if (_nativeContext is null)
         {
-            throw new InvalidOperationException("Native context is not initialized.");
+            throw new InvalidOperationException(NativeContextNotInitializedMessage);
         }
 
         _nativeContext.Update(gameTime);
@@ -166,6 +171,11 @@ internal class Interpreter : IDisposable
             romBytes.CopyTo(Memory.Span[0x0200..]);
             _romLoaded = true;
             CommonLogging.LoadedRom(_logger, romPath);
+        }
+
+        if (_paused)
+        {
+            return;
         }
 
         Keypad = _nativeContext.Display.SyncKeypad();
@@ -268,40 +278,66 @@ internal class Interpreter : IDisposable
         return instruction;
     }
 
-    private void UpdateTimers(GameTime gameTime)
+    private void UpdateSoundTimer()
     {
         if (_nativeContext is null)
         {
-            throw new InvalidOperationException("Native context is not initialized.");
+            throw new InvalidOperationException(NativeContextNotInitializedMessage);
         }
 
         if (_nativeContext.Audio is null)
         {
-            throw new InvalidOperationException("Native audio is not initialized.");
+            throw new InvalidOperationException(NativeAudioNotInitializedMessage);
+        }
+
+        if (SoundTimer > 0)
+        {
+            SoundTimer--;
+
+            _nativeContext.Audio.RefillQueue();
+            if (_nativeContext.Audio.IsPaused())
+            {
+                _nativeContext.Audio.Resume();
+            }
+        }
+        else if (!_nativeContext.Audio.IsPaused())
+        {
+            _nativeContext.Audio.Pause();
+        }
+    }
+
+    private void UpdateTimers(GameTime gameTime)
+    {
+        if (_nativeContext is null)
+        {
+            throw new InvalidOperationException(NativeContextNotInitializedMessage);
+        }
+
+        if (_nativeContext.Audio is null)
+        {
+            throw new InvalidOperationException(NativeAudioNotInitializedMessage);
         }
 
         // CHIP-8 delay/sound timers tick at 60Hz, independent of CPU instruction rate.
         _timerAccumulator += gameTime.DeltaTime;
         while (_timerAccumulator >= TimerTick)
         {
+            if (_paused)
+            {
+                if (!_nativeContext.Audio.IsPaused())
+                {
+                    _nativeContext.Audio.Pause();
+                }
+
+                break;
+            }
+
             if (DelayTimer > 0)
             {
                 DelayTimer--;
             }
 
-            if (SoundTimer > 0)
-            {
-                SoundTimer--;
-                _nativeContext.Audio.RefillQueue();
-                if (_nativeContext.Audio.IsPaused())
-                {
-                    _nativeContext.Audio.Resume();
-                }
-            }
-            else if (!_nativeContext.Audio.IsPaused())
-            {
-                _nativeContext.Audio.Pause();
-            }
+            UpdateSoundTimer();
 
             _timerAccumulator -= TimerTick;
         }

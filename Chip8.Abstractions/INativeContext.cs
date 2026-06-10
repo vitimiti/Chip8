@@ -26,6 +26,8 @@ public interface INativeContext : IDisposable
 {
     event EventHandler<QuitEventArgs>? QuitRequested;
 
+    event EventHandler? PauseToggleRequested;
+
     INativeAudio? Audio { get; }
 
     INativeDisplay? Display { get; }

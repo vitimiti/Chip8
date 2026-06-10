@@ -220,12 +220,29 @@ internal static unsafe partial class Ffi
     public readonly record struct SDL_EventType(uint Value);
 
     public static SDL_EventType SDL_EVENT_QUIT => new(0x0000_0100U);
+    public static SDL_EventType SDL_EVENT_KEY_DOWN => new(0x0000_0300U);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct SDL_KeyboardEvent
+    {
+        public SDL_EventType Type;
+        private readonly uint _reserved;
+        private readonly ulong _padding1; // timestamp
+        private fixed uint _padding2[2]; // windowID, which
+        public SDL_Scancode Scancode;
+        private readonly uint _padding3; // key
+        private fixed ushort _padding4[2]; // mod, raw
+        private fixed sbyte _padding5[2]; // down, repeat
+    }
 
     [StructLayout(LayoutKind.Explicit)]
     public struct SDL_Event
     {
         [FieldOffset(0)]
         public SDL_EventType Type;
+
+        [FieldOffset(0)]
+        public SDL_KeyboardEvent Key;
 
         [FieldOffset(0)]
         private fixed byte _padding[128];
@@ -542,6 +559,8 @@ internal static unsafe partial class Ffi
     public static SDL_Scancode SDL_SCANCODE_2 => new(31);
     public static SDL_Scancode SDL_SCANCODE_3 => new(32);
     public static SDL_Scancode SDL_SCANCODE_4 => new(33);
+    public static SDL_Scancode SDL_SCANCODE_ESCAPE => new(41);
+    public static SDL_Scancode SDL_SCANCODE_SPACE => new(44);
 
     #endregion // SDL_scancode.h
 
