@@ -17,8 +17,6 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-using Chip8.Common.Configurations;
-
 namespace Chip8.Instructions;
 
 internal record LoadInstruction(Interpreter Interpreter, ushort OpCode)
@@ -37,7 +35,7 @@ internal record LoadInstruction(Interpreter Interpreter, ushort OpCode)
             Interpreter.V[i] = bytesToLoad[i];
         }
 
-        if (Interpreter.Options.Type is InterpreterType.Classic or InterpreterType.XoChip)
+        if (Interpreter.Options.IncrementIOnFx55Fx65)
         {
             Interpreter.I += (ushort)(X + 1);
         }
