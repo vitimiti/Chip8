@@ -1,0 +1,35 @@
+app-id: io.github.vitimiti.chip8
+runtime: org.freedesktop.Platform
+runtime-version: "24.08"
+sdk: org.freedesktop.Sdk
+command: Chip8
+finish-args:
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  - --socket=pulseaudio
+  - --filesystem=~/Games:create
+
+modules:
+  - name: sdl3
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DSDL_STATIC=OFF
+      - -DSDL_SHARED=ON
+      - -DSDL_TEST_LIBRARY=OFF
+      - -DSDL_TESTS=OFF
+    sources:
+      - type: archive
+        url: https://github.com/libsdl-org/SDL/releases/download/release-3.4.10/SDL3-3.4.10.tar.gz
+        sha256: 12b34280415ec8418c864408b93d008a20a6530687ee613d60bfbd20411f2785
+
+  - name: chip8
+    buildsystem: simple
+    build-commands:
+      - install -d /app/bin
+      - cp -R ./* /app/bin/
+      - chmod +x /app/bin/Chip8 || true
+    sources:
+      - type: dir
+        path: root
