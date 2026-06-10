@@ -36,6 +36,15 @@ public class SdlNativeDisplay : INativeDisplay
     private readonly float[] _phosphor;
     private readonly Size _displaySize;
 
+    // csharpier-ignore
+    private readonly Dictionary<SDL_Scancode, bool> _scanCodes = new()
+    {
+        { SDL_SCANCODE_1, false }, { SDL_SCANCODE_2, false }, { SDL_SCANCODE_3, false }, { SDL_SCANCODE_4, false }, // 1, 2, 3, C
+        { SDL_SCANCODE_Q, false }, { SDL_SCANCODE_W, false }, { SDL_SCANCODE_E, false }, { SDL_SCANCODE_R, false }, // 4, 5, 6, D
+        { SDL_SCANCODE_A, false }, { SDL_SCANCODE_S, false }, { SDL_SCANCODE_D, false }, { SDL_SCANCODE_F, false }, // 7, 8, 9, E
+        { SDL_SCANCODE_Z, false }, { SDL_SCANCODE_X, false }, { SDL_SCANCODE_C, false }, { SDL_SCANCODE_V, false }, // A, 0, B, F
+    };
+
     private SDL_Window? _window;
     private SDL_Renderer? _renderer;
     private bool _romSelectorShown;
@@ -98,6 +107,15 @@ public class SdlNativeDisplay : INativeDisplay
             throw new InvalidOperationException(
                 $"Failed to set SDL renderer logical presentation: {SDL_GetError()}."
             );
+        }
+    }
+
+    public void SyncKeypad()
+    {
+        var keyboardState = SDL_GetKeyboardState();
+        foreach (var scanCode in _scanCodes.Keys)
+        {
+            _scanCodes[scanCode] = keyboardState[scanCode];
         }
     }
 

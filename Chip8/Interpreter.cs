@@ -125,7 +125,6 @@ internal class Interpreter : IDisposable
             throw new InvalidOperationException("Native context is not initialized.");
         }
 
-        _nativeContext.Update(gameTime);
         if (_nativeContext.Display is null)
         {
             throw new InvalidOperationException("Native display is not initialized.");
@@ -152,10 +151,14 @@ internal class Interpreter : IDisposable
             CommonLogging.LoadedRom(_logger, romPath);
         }
 
+        _nativeContext.Display.SyncKeypad();
+
         UpdateTimers(gameTime);
 
         // From right to left: Fetch, decode, and execute instructions.
         Execute(Decode(Fetch()));
+
+        _nativeContext.Update(gameTime);
     }
 
     public void Draw(GameTime gameTime)

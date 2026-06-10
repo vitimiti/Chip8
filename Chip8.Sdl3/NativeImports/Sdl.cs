@@ -41,11 +41,7 @@ internal static unsafe partial class Ffi
             Utf8StringMarshaller.ConvertToManaged(unmanaged);
     }
 
-    [CustomMarshaller(
-        typeof(SDL_DialogFileFilter),
-        MarshalMode.ElementIn,
-        typeof(DialogFilterMarshaller.ElementIn)
-    )]
+    [CustomMarshaller(typeof(SDL_DialogFileFilter), MarshalMode.ElementIn, typeof(ElementIn))]
     private static class DialogFilterMarshaller
     {
         public static class ElementIn
@@ -183,6 +179,31 @@ internal static unsafe partial class Ffi
     );
 
     #endregion // SDL_init.h
+
+    #region SDL_keyboard.h
+
+    public static bool[] SDL_GetKeyboardState()
+    {
+        var unmanaged = SDL_GetKeyboardStateNative(out var numKeys);
+        if (unmanaged is null || numKeys <= 0)
+        {
+            return [];
+        }
+
+        var managed = new bool[numKeys];
+        for (var i = 0; i < numKeys; i++)
+        {
+            managed[i] = unmanaged[i] != 0;
+        }
+
+        return managed;
+    }
+
+    [LibraryImport(LibSdl3, EntryPoint = "SDL_GetKeyboardState")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    private static partial sbyte* SDL_GetKeyboardStateNative(out int numKeys);
+
+    #endregion // SDL_keyboard.h
 
     #region SDL_log.h
 
@@ -408,6 +429,44 @@ internal static unsafe partial class Ffi
     private static partial void SDL_DestroyRenderer(nint renderer);
 
     #endregion // SDL_render.h
+
+    #region SDL_scancode.h
+
+    public readonly record struct SDL_Scancode(int Value)
+    {
+        public static implicit operator int(SDL_Scancode scancode) => scancode.Value;
+    }
+
+    public static SDL_Scancode SDL_SCANCODE_A => new(4);
+    public static SDL_Scancode SDL_SCANCODE_C => new(6);
+    public static SDL_Scancode SDL_SCANCODE_D => new(7);
+    public static SDL_Scancode SDL_SCANCODE_E => new(8);
+    public static SDL_Scancode SDL_SCANCODE_F => new(9);
+    public static SDL_Scancode SDL_SCANCODE_Q => new(20);
+    public static SDL_Scancode SDL_SCANCODE_R => new(21);
+    public static SDL_Scancode SDL_SCANCODE_S => new(22);
+    public static SDL_Scancode SDL_SCANCODE_V => new(25);
+    public static SDL_Scancode SDL_SCANCODE_W => new(26);
+    public static SDL_Scancode SDL_SCANCODE_X => new(27);
+    public static SDL_Scancode SDL_SCANCODE_Z => new(29);
+    public static SDL_Scancode SDL_SCANCODE_1 => new(30);
+    public static SDL_Scancode SDL_SCANCODE_2 => new(31);
+    public static SDL_Scancode SDL_SCANCODE_3 => new(32);
+    public static SDL_Scancode SDL_SCANCODE_4 => new(33);
+
+    #endregion // SDL_scancode.h
+
+    #region SDL_stdinc.h
+
+    [LibraryImport(LibSdl3)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    private static partial void* SDL_malloc(nuint size);
+
+    [LibraryImport(LibSdl3)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    private static partial void SDL_free(void* mem);
+
+    #endregion // SDL_stdinc.h
 
     #region SDL_video.h
 

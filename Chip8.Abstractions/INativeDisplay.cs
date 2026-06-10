@@ -29,6 +29,8 @@ public interface INativeDisplay : IDisposable
 
     void Initialize();
 
+    void SyncKeypad();
+
     void Update(GameTime gameTime);
 
     void Draw(GameTime gameTime, byte[] displayBuffer);
