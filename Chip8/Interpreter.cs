@@ -141,6 +141,7 @@ internal class Interpreter : IDisposable
         _nativeContext.QuitRequested += (_, _) => _running = false;
         _nativeContext.PauseToggleRequested += (_, _) => _paused = !_paused;
         _nativeContext.OpenRomRequested += (_, _) => BeginRomSelection();
+        _nativeContext.ResetRomRequested += (_, _) => ResetCurrentRomExecution();
 
         Font.CopyTo(Memory.Span[GlyphStartAddress..]);
     }
@@ -184,6 +185,21 @@ internal class Interpreter : IDisposable
         _timerAccumulator = TimeSpan.Zero;
         _legacyDrawAllowed = true;
         _romLoaded = false;
+    }
+
+    private void ResetCurrentRomExecution()
+    {
+        if (_waitingForRomSelection || _nativeContext?.Display is null)
+        {
+            return;
+        }
+
+        if (!_nativeContext.Display.RomSelected)
+        {
+            return;
+        }
+
+        ResetStateForNewRom();
     }
 
     private void Update(GameTime gameTime)

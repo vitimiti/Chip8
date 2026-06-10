@@ -30,6 +30,8 @@ public interface INativeContext : IDisposable
 
     event EventHandler? OpenRomRequested;
 
+    event EventHandler? ResetRomRequested;
+
     INativeAudio? Audio { get; }
 
     INativeDisplay? Display { get; }

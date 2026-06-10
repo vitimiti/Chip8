@@ -32,6 +32,7 @@ public class SdlNativeContext : INativeContext
     public event EventHandler<QuitEventArgs>? QuitRequested;
     public event EventHandler? PauseToggleRequested;
     public event EventHandler? OpenRomRequested;
+    public event EventHandler? ResetRomRequested;
 
     private readonly ILogger<SdlNativeContext> _logger;
 
@@ -174,6 +175,17 @@ public class SdlNativeContext : INativeContext
             if (keyboardState[SDL_SCANCODE_LCTRL] || keyboardState[SDL_SCANCODE_RCTRL])
             {
                 OpenRomRequested?.Invoke(this, EventArgs.Empty);
+            }
+
+            return;
+        }
+
+        if (scancode == SDL_SCANCODE_R)
+        {
+            var keyboardState = SDL_GetKeyboardState();
+            if (keyboardState[SDL_SCANCODE_LCTRL] || keyboardState[SDL_SCANCODE_RCTRL])
+            {
+                ResetRomRequested?.Invoke(this, EventArgs.Empty);
             }
         }
     }
