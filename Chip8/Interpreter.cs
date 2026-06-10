@@ -57,8 +57,6 @@ internal class Interpreter : IDisposable
 
     private GameTime? _gameTime;
     private INativeContext? _nativeContext;
-    private byte _delayTimer;
-    private byte _soundTimer;
     private bool _running;
     private bool _romLoaded;
     private TimeSpan _timerAccumulator;
@@ -90,6 +88,10 @@ internal class Interpreter : IDisposable
     internal ushort I { get; set; }
 
     internal Stack<ushort> Stack { get; } = new(16);
+
+    internal byte DelayTimer { get; set; }
+
+    internal byte SoundTimer { get; set; }
 
     internal bool[] Keypad { get; private set; } = new bool[0xF];
 
@@ -234,6 +236,13 @@ internal class Interpreter : IDisposable
                 0x00A1 => new SkipIfKeyNotPressedInstruction(this, opCode),
                 _ => new UnknownInstruction(_logger, this, opCode),
             },
+            0xF000 => (opCode & 0x00FF) switch
+            {
+                0x0007 => new LoadDelayTimerInstruction(this, opCode),
+                0x0015 => new SetDelayTimerInstruction(this, opCode),
+                0x0018 => new SetSoundTimerInstruction(this, opCode),
+                _ => new UnknownInstruction(_logger, this, opCode),
+            },
             _ => new UnknownInstruction(_logger, this, opCode),
         };
 
@@ -247,14 +256,14 @@ internal class Interpreter : IDisposable
         _timerAccumulator += gameTime.DeltaTime;
         while (_timerAccumulator >= TimerTick)
         {
-            if (_delayTimer > 0)
+            if (DelayTimer > 0)
             {
-                _delayTimer--;
+                DelayTimer--;
             }
 
-            if (_soundTimer > 0)
+            if (SoundTimer > 0)
             {
-                _soundTimer--;
+                SoundTimer--;
             }
 
             _timerAccumulator -= TimerTick;
