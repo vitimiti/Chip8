@@ -24,7 +24,7 @@ namespace Chip8.Common.Configurations;
 public sealed record InterpreterOptions
 {
     [Required]
-    public InterpreterType Type { get; set; } = InterpreterType.SuperChip;
+    public InterpreterType Type { get; set; } = InterpreterType.Legacy;
 
     [Required]
     [Range(1, 50, ErrorMessage = "The display size multiplier must be between 1 and 50.")]
