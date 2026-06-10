@@ -252,6 +252,8 @@ public class SdlNativeDisplay : INativeDisplay
             RenderDebugPanels(debugSnapshot);
         }
 
+        RenderStatusToast(debugSnapshot);
+
         if (!SDL_RenderPresent(_renderer))
         {
             throw new InvalidOperationException(
@@ -472,6 +474,96 @@ public class SdlNativeDisplay : INativeDisplay
             " F7       shift src",
             " F8       debug hud",
         ];
+
+    private void RenderStatusToast(EmulatorDebugSnapshot debugSnapshot)
+    {
+        if (debugSnapshot.StatusMessage is not { Length: > 0 } message)
+        {
+            return;
+        }
+
+        if (_renderer is null || _window is null)
+        {
+            throw new InvalidOperationException("SDL renderer or window is not initialized.");
+        }
+
+        if (!SDL_SetRenderLogicalPresentation(_renderer, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED))
+        {
+            throw new InvalidOperationException(
+                $"Failed to disable SDL logical presentation: {SDL_GetError()}."
+            );
+        }
+
+        if (!SDL_GetWindowSize(_window, out var windowWidth, out var windowHeight))
+        {
+            throw new InvalidOperationException(
+                $"Failed to get SDL window size: {SDL_GetError()}."
+            );
+        }
+
+        const float margin = 8F;
+        const float charWidth = 8F;
+        const float charHeight = 8F;
+
+        var boxWidth = (message.Length * charWidth) + 12F;
+        var boxHeight = charHeight + 12F;
+        var box = new SDL_FRect
+        {
+            X = margin,
+            Y = windowHeight - margin - boxHeight,
+            W = Math.Min(boxWidth, windowWidth - (margin * 2)),
+            H = boxHeight,
+        };
+
+        if (!SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 220))
+        {
+            throw new InvalidOperationException(
+                $"Failed to set SDL renderer draw color: {SDL_GetError()}."
+            );
+        }
+
+        if (!SDL_RenderFillRect(_renderer, in box))
+        {
+            throw new InvalidOperationException(
+                $"Failed to draw SDL toast fill: {SDL_GetError()}."
+            );
+        }
+
+        if (!SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255))
+        {
+            throw new InvalidOperationException(
+                $"Failed to set SDL renderer draw color: {SDL_GetError()}."
+            );
+        }
+
+        if (!SDL_RenderRect(_renderer, in box))
+        {
+            throw new InvalidOperationException(
+                $"Failed to draw SDL toast border: {SDL_GetError()}."
+            );
+        }
+
+        if (!SDL_RenderDebugText(_renderer, box.X + 6, box.Y + 3, message))
+        {
+            throw new InvalidOperationException(
+                $"Failed to draw SDL debug text: {SDL_GetError()}."
+            );
+        }
+
+        if (
+            !SDL_SetRenderLogicalPresentation(
+                _renderer,
+                _displaySize.Width,
+                _displaySize.Height,
+                SDL_LOGICAL_PRESENTATION_LETTERBOX
+            )
+        )
+        {
+            throw new InvalidOperationException(
+                $"Failed to restore SDL logical presentation: {SDL_GetError()}."
+            );
+        }
+    }
 
     private static IReadOnlyList<string> GetOptionLines(EmulatorDebugSnapshot debugSnapshot) =>
         [

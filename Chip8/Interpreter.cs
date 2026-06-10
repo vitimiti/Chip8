@@ -74,6 +74,8 @@ internal class Interpreter : IDisposable
     private bool _pausedBeforeRomSelection;
     private long _nextDrawAllowedTimestamp;
     private bool _showDebugOverlay;
+    private string? _statusMessage;
+    private long _statusMessageExpiresAtTimestamp;
     private bool _disposedValue;
 
     public Interpreter(
@@ -92,6 +94,8 @@ internal class Interpreter : IDisposable
         IsHighResolution = false;
         _nextDrawAllowedTimestamp = 0;
         _showDebugOverlay = false;
+        _statusMessage = null;
+        _statusMessageExpiresAtTimestamp = 0;
     }
 
     internal InterpreterOptions Options { get; }
@@ -149,14 +153,14 @@ internal class Interpreter : IDisposable
         _nativeContext.ResetRomRequested += (_, _) => ResetCurrentRomExecution();
         _nativeContext.InterpreterModeChanged += (_, args) =>
             ApplyInterpreterType(args.InterpreterType);
-        _nativeContext.SetVfOnFx1EOverflowToggleRequested += (_, _) =>
-            Options.SetVfOnFx1EOverflow = !Options.SetVfOnFx1EOverflow;
+        _nativeContext.SetVfOnFx1EOverflowToggleRequested += (_, _) => ToggleSetVfOnFx1EOverflow();
         _nativeContext.IncrementIOnFx55Fx65ToggleRequested += (_, _) =>
-            Options.IncrementIOnFx55Fx65 = !Options.IncrementIOnFx55Fx65;
+            ToggleIncrementIOnFx55Fx65();
         _nativeContext.UseLegacyShiftSourceQuirkToggleRequested += (_, _) =>
-            Options.UseLegacyShiftSourceQuirk = !Options.UseLegacyShiftSourceQuirk;
+            ToggleUseLegacyShiftSourceQuirk();
         _nativeContext.DebugOverlayToggleRequested += (_, _) =>
             _showDebugOverlay = !_showDebugOverlay;
+        _nativeContext.StatusMessageRequested += (_, args) => ShowStatusMessage(args.Message);
 
         Font.CopyTo(Memory.Span[GlyphStartAddress..]);
     }
@@ -269,6 +273,7 @@ internal class Interpreter : IDisposable
             romBytes.CopyTo(Memory.Span[0x0200..]);
             _romLoaded = true;
             CommonLogging.LoadedRom(_logger, romPath);
+            ShowStatusMessage("Press F8 to show help/status");
         }
 
         if (_paused)
@@ -304,7 +309,50 @@ internal class Interpreter : IDisposable
             IncrementIOnFx55Fx65 = Options.IncrementIOnFx55Fx65,
             UseLegacyShiftSourceQuirk = Options.UseLegacyShiftSourceQuirk,
             ShowDebugOverlay = _showDebugOverlay,
+            StatusMessage = GetActiveStatusMessage(),
         };
+
+    private void ToggleSetVfOnFx1EOverflow()
+    {
+        Options.SetVfOnFx1EOverflow = !Options.SetVfOnFx1EOverflow;
+        ShowStatusMessage($"SetVfOnFx1EOverflow changed to {Options.SetVfOnFx1EOverflow}");
+    }
+
+    private void ToggleIncrementIOnFx55Fx65()
+    {
+        Options.IncrementIOnFx55Fx65 = !Options.IncrementIOnFx55Fx65;
+        ShowStatusMessage($"IncrementIOnFx55Fx65 changed to {Options.IncrementIOnFx55Fx65}");
+    }
+
+    private void ToggleUseLegacyShiftSourceQuirk()
+    {
+        Options.UseLegacyShiftSourceQuirk = !Options.UseLegacyShiftSourceQuirk;
+        ShowStatusMessage(
+            $"UseLegacyShiftSourceQuirk changed to {Options.UseLegacyShiftSourceQuirk}"
+        );
+    }
+
+    private void ShowStatusMessage(string message)
+    {
+        _statusMessage = message;
+        _statusMessageExpiresAtTimestamp = Stopwatch.GetTimestamp() + (2 * Stopwatch.Frequency);
+    }
+
+    private string? GetActiveStatusMessage()
+    {
+        if (_statusMessage is null)
+        {
+            return null;
+        }
+
+        if (Stopwatch.GetTimestamp() > _statusMessageExpiresAtTimestamp)
+        {
+            _statusMessage = null;
+            return null;
+        }
+
+        return _statusMessage;
+    }
 
     private void ExecutePendingInstructions(GameTime gameTime)
     {

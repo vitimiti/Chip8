@@ -39,6 +39,7 @@ public class SdlNativeContext : INativeContext
     public event EventHandler? IncrementIOnFx55Fx65ToggleRequested;
     public event EventHandler? UseLegacyShiftSourceQuirkToggleRequested;
     public event EventHandler? DebugOverlayToggleRequested;
+    public event EventHandler<StatusMessageEventArgs>? StatusMessageRequested;
 
     private readonly ILogger<SdlNativeContext> _logger;
 
@@ -196,6 +197,14 @@ public class SdlNativeContext : INativeContext
             return;
         }
 
+        if (TryGetKeypadValueFromScancode(scancode, out var keypadValue))
+        {
+            StatusMessageRequested?.Invoke(
+                this,
+                new StatusMessageEventArgs($"CODE:{(int)scancode} KEY:${keypadValue:X}")
+            );
+        }
+
         if (scancode == SDL_SCANCODE_ESCAPE)
         {
             QuitRequested?.Invoke(this, new QuitEventArgs(timestamp));
@@ -247,6 +256,47 @@ public class SdlNativeContext : INativeContext
             || scancode == SDL_SCANCODE_F2
             || scancode == SDL_SCANCODE_F3
             || scancode == SDL_SCANCODE_F4;
+    }
+
+    private static bool TryGetKeypadValueFromScancode(SDL_Scancode scancode, out byte keypadValue)
+    {
+        keypadValue = scancode switch
+        {
+            _ when scancode == SDL_SCANCODE_X => 0x0,
+            _ when scancode == SDL_SCANCODE_1 => 0x1,
+            _ when scancode == SDL_SCANCODE_2 => 0x2,
+            _ when scancode == SDL_SCANCODE_3 => 0x3,
+            _ when scancode == SDL_SCANCODE_Q => 0x4,
+            _ when scancode == SDL_SCANCODE_W => 0x5,
+            _ when scancode == SDL_SCANCODE_E => 0x6,
+            _ when scancode == SDL_SCANCODE_A => 0x7,
+            _ when scancode == SDL_SCANCODE_S => 0x8,
+            _ when scancode == SDL_SCANCODE_D => 0x9,
+            _ when scancode == SDL_SCANCODE_Z => 0xA,
+            _ when scancode == SDL_SCANCODE_C => 0xB,
+            _ when scancode == SDL_SCANCODE_4 => 0xC,
+            _ when scancode == SDL_SCANCODE_R => 0xD,
+            _ when scancode == SDL_SCANCODE_F => 0xE,
+            _ when scancode == SDL_SCANCODE_V => 0xF,
+            _ => 0,
+        };
+
+        return scancode == SDL_SCANCODE_X
+            || scancode == SDL_SCANCODE_1
+            || scancode == SDL_SCANCODE_2
+            || scancode == SDL_SCANCODE_3
+            || scancode == SDL_SCANCODE_Q
+            || scancode == SDL_SCANCODE_W
+            || scancode == SDL_SCANCODE_E
+            || scancode == SDL_SCANCODE_A
+            || scancode == SDL_SCANCODE_S
+            || scancode == SDL_SCANCODE_D
+            || scancode == SDL_SCANCODE_Z
+            || scancode == SDL_SCANCODE_C
+            || scancode == SDL_SCANCODE_4
+            || scancode == SDL_SCANCODE_R
+            || scancode == SDL_SCANCODE_F
+            || scancode == SDL_SCANCODE_V;
     }
 
     public void Draw(GameTime gameTime, byte[] displayBuffer, EmulatorDebugSnapshot debugSnapshot)

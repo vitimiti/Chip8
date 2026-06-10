@@ -40,4 +40,6 @@ public sealed class EmulatorDebugSnapshot
     public required bool UseLegacyShiftSourceQuirk { get; set; }
 
     public required bool ShowDebugOverlay { get; set; }
+
+    public string? StatusMessage { get; set; }
 }

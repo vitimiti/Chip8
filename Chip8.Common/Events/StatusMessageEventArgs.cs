@@ -17,40 +17,9 @@
 // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-using Chip8.Common;
-using Chip8.Common.Events;
+namespace Chip8.Common.Events;
 
-namespace Chip8.Abstractions;
-
-public interface INativeContext : IDisposable
+public sealed class StatusMessageEventArgs(string message) : EventArgs
 {
-    event EventHandler<QuitEventArgs>? QuitRequested;
-
-    event EventHandler? PauseToggleRequested;
-
-    event EventHandler? OpenRomRequested;
-
-    event EventHandler? ResetRomRequested;
-
-    event EventHandler<InterpreterModeChangedEventArgs>? InterpreterModeChanged;
-
-    event EventHandler? SetVfOnFx1EOverflowToggleRequested;
-
-    event EventHandler? IncrementIOnFx55Fx65ToggleRequested;
-
-    event EventHandler? UseLegacyShiftSourceQuirkToggleRequested;
-
-    event EventHandler? DebugOverlayToggleRequested;
-
-    event EventHandler<StatusMessageEventArgs>? StatusMessageRequested;
-
-    INativeAudio? Audio { get; }
-
-    INativeDisplay? Display { get; }
-
-    void Initialize();
-
-    void Update(GameTime gameTime);
-
-    void Draw(GameTime gameTime, byte[] displayBuffer, EmulatorDebugSnapshot debugSnapshot);
+    public string Message { get; } = message;
 }
