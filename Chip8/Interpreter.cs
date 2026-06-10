@@ -62,6 +62,7 @@ internal class Interpreter : IDisposable
     private bool _romLoaded;
     private TimeSpan _timerAccumulator;
     private bool _disposedValue;
+    private int _executionCount;
 
     public Interpreter(
         ILogger<Interpreter> logger,
@@ -125,6 +126,7 @@ internal class Interpreter : IDisposable
             throw new InvalidOperationException("Native context is not initialized.");
         }
 
+        _nativeContext.Update(gameTime);
         if (_nativeContext.Display is null)
         {
             throw new InvalidOperationException("Native display is not initialized.");
@@ -152,13 +154,10 @@ internal class Interpreter : IDisposable
         }
 
         _nativeContext.Display.SyncKeypad();
-
         UpdateTimers(gameTime);
 
         // From right to left: Fetch, decode, and execute instructions.
-        Execute(Decode(Fetch()));
-
-        _nativeContext.Update(gameTime);
+        Execute(gameTime, Decode(Fetch()));
     }
 
     public void Draw(GameTime gameTime)
@@ -171,7 +170,18 @@ internal class Interpreter : IDisposable
         _nativeContext.Draw(gameTime, DisplayBuffer);
     }
 
-    private static void Execute(BaseInstruction instruction) => instruction.Execute();
+    private void Execute(GameTime gameTime, BaseInstruction instruction)
+    {
+        // Limit execution to 500/700 instructions per second
+        var instructionsPerSecond = Options.Type is InterpreterType.Legacy ? 500 : 700;
+        if (gameTime.TotalTime.TotalSeconds * instructionsPerSecond < _executionCount)
+        {
+            return;
+        }
+
+        instruction.Execute();
+        _executionCount++;
+    }
 
     private ushort Fetch()
     {
