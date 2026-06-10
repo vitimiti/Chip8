@@ -44,8 +44,10 @@ public sealed record InterpreterOptions
 
     public bool SetVfOnFx1EOverflow { get; set; }
 
-    public bool IncrementIOnFx55Fx65 { get; set; }
+    public bool IncrementIOnFx55Fx65 { get; set; } = true;
+
+    public bool UseLegacyShiftSourceQuirk { get; set; } = true;
 
     public override string ToString() =>
-        $"Interpreter Type: {Type}, Display Size Multiplier: {DisplaySizeMultiplier}, Audio Volume: {AudioVolume:P4}, Set VF on FX1E overflow: {SetVfOnFx1EOverflow}, Increment I on FX55/FX65: {IncrementIOnFx55Fx65}";
+        $"Interpreter Type: {Type}, Display Size Multiplier: {DisplaySizeMultiplier}, Audio Volume: {AudioVolume:P4}, Set VF on FX1E overflow: {SetVfOnFx1EOverflow}, Increment I on FX55/FX65: {IncrementIOnFx55Fx65}, Use legacy shift source quirk: {UseLegacyShiftSourceQuirk}";
 }

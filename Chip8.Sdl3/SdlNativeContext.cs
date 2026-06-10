@@ -35,6 +35,9 @@ public class SdlNativeContext : INativeContext
     public event EventHandler? OpenRomRequested;
     public event EventHandler? ResetRomRequested;
     public event EventHandler<InterpreterModeChangedEventArgs>? InterpreterModeChanged;
+    public event EventHandler? SetVfOnFx1EOverflowToggleRequested;
+    public event EventHandler? IncrementIOnFx55Fx65ToggleRequested;
+    public event EventHandler? UseLegacyShiftSourceQuirkToggleRequested;
 
     private readonly ILogger<SdlNativeContext> _logger;
 
@@ -165,6 +168,24 @@ public class SdlNativeContext : INativeContext
                 this,
                 new InterpreterModeChangedEventArgs(interpreterType)
             );
+            return;
+        }
+
+        if (scancode == SDL_SCANCODE_F5)
+        {
+            SetVfOnFx1EOverflowToggleRequested?.Invoke(this, EventArgs.Empty);
+            return;
+        }
+
+        if (scancode == SDL_SCANCODE_F6)
+        {
+            IncrementIOnFx55Fx65ToggleRequested?.Invoke(this, EventArgs.Empty);
+            return;
+        }
+
+        if (scancode == SDL_SCANCODE_F7)
+        {
+            UseLegacyShiftSourceQuirkToggleRequested?.Invoke(this, EventArgs.Empty);
             return;
         }
 

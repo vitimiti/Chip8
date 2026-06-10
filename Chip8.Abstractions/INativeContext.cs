@@ -34,6 +34,12 @@ public interface INativeContext : IDisposable
 
     event EventHandler<InterpreterModeChangedEventArgs>? InterpreterModeChanged;
 
+    event EventHandler? SetVfOnFx1EOverflowToggleRequested;
+
+    event EventHandler? IncrementIOnFx55Fx65ToggleRequested;
+
+    event EventHandler? UseLegacyShiftSourceQuirkToggleRequested;
+
     INativeAudio? Audio { get; }
 
     INativeDisplay? Display { get; }

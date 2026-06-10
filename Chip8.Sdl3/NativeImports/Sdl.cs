@@ -564,6 +564,9 @@ internal static unsafe partial class Ffi
     public static SDL_Scancode SDL_SCANCODE_F2 => new(59);
     public static SDL_Scancode SDL_SCANCODE_F3 => new(60);
     public static SDL_Scancode SDL_SCANCODE_F4 => new(61);
+    public static SDL_Scancode SDL_SCANCODE_F5 => new(62);
+    public static SDL_Scancode SDL_SCANCODE_F6 => new(63);
+    public static SDL_Scancode SDL_SCANCODE_F7 => new(64);
     public static SDL_Scancode SDL_SCANCODE_ESCAPE => new(41);
     public static SDL_Scancode SDL_SCANCODE_SPACE => new(44);
     public static SDL_Scancode SDL_SCANCODE_LCTRL => new(224);

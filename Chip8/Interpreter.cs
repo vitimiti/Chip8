@@ -147,6 +147,12 @@ internal class Interpreter : IDisposable
         _nativeContext.ResetRomRequested += (_, _) => ResetCurrentRomExecution();
         _nativeContext.InterpreterModeChanged += (_, args) =>
             ApplyInterpreterType(args.InterpreterType);
+        _nativeContext.SetVfOnFx1EOverflowToggleRequested += (_, _) =>
+            Options.SetVfOnFx1EOverflow = !Options.SetVfOnFx1EOverflow;
+        _nativeContext.IncrementIOnFx55Fx65ToggleRequested += (_, _) =>
+            Options.IncrementIOnFx55Fx65 = !Options.IncrementIOnFx55Fx65;
+        _nativeContext.UseLegacyShiftSourceQuirkToggleRequested += (_, _) =>
+            Options.UseLegacyShiftSourceQuirk = !Options.UseLegacyShiftSourceQuirk;
 
         Font.CopyTo(Memory.Span[GlyphStartAddress..]);
     }
