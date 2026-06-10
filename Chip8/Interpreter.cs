@@ -250,6 +250,7 @@ internal class Interpreter : IDisposable
                 0x0018 => new SetSoundTimerInstruction(this, opCode),
                 0x001E => new AddToIndexInstruction(this, opCode),
                 0x0029 => new FontCharacterInstruction(this, opCode),
+                0x0033 => new BinaryCodedDecimalConversionInstruction(this, opCode),
                 _ => new UnknownInstruction(_logger, this, opCode),
             },
             _ => new UnknownInstruction(_logger, this, opCode),
