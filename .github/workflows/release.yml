@@ -209,7 +209,7 @@ jobs:
             - name: Build Flatpak
               run: |
                   set -euo pipefail
-                  flatpak-builder --force-clean --arch=${{ matrix.flatpak_arch }} --user --install-deps-from=flathub --repo=repo build-flatpak packaging/flatpak/io.github.vitimiti.chip8.yml
+                  flatpak-builder --force-clean --arch=${{ matrix.flatpak_arch }} --default-branch=stable --user --install-deps-from=flathub --repo=repo build-flatpak packaging/flatpak/io.github.vitimiti.chip8.yml
 
             - name: Bundle Flatpak
               run: |
