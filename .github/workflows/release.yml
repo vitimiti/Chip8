@@ -170,15 +170,18 @@ jobs:
     flatpak:
         name: Linux Flatpak (${{ matrix.rid }})
         needs: publish
-        runs-on: ubuntu-latest
         strategy:
             fail-fast: false
             matrix:
                 include:
                     - rid: linux-x64
                       flatpak_arch: x86_64
+                      runner: ubuntu-latest
                     - rid: linux-arm64
                       flatpak_arch: aarch64
+                      runner: ubuntu-24.04-arm
+
+        runs-on: ${{ matrix.runner }}
 
         steps:
             - name: Checkout
