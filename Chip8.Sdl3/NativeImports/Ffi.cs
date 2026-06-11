@@ -53,17 +53,27 @@ internal static partial class Ffi
 
         if (OperatingSystem.IsLinux() || OperatingSystem.IsFreeBSD())
         {
-            if (NativeLibrary.TryLoad("/app/lib/libSDL3.so.0", out var handle))
+            if (TryLoadAnyFromDirectory("/app/lib64", out var handle))
+            {
+                return handle;
+            }
+
+            if (TryLoadAnyFromDirectory("/app/lib", out handle))
+            {
+                return handle;
+            }
+
+            if (NativeLibrary.TryLoad("/app/lib64/libSDL3.so.0", out handle))
+            {
+                return handle;
+            }
+
+            if (NativeLibrary.TryLoad("/app/lib/libSDL3.so.0", out handle))
             {
                 return handle;
             }
 
             if (NativeLibrary.TryLoad("libSDL3.so.0", out handle))
-            {
-                return handle;
-            }
-
-            if (NativeLibrary.TryLoad("libSDL3.so.0.4.10", out handle))
             {
                 return handle;
             }
@@ -87,5 +97,25 @@ internal static partial class Ffi
         }
 
         return NativeLibrary.Load(name, assembly, path);
+    }
+
+    private static bool TryLoadAnyFromDirectory(string directory, out nint handle)
+    {
+        handle = 0;
+
+        if (!Directory.Exists(directory))
+        {
+            return false;
+        }
+
+        foreach (var candidate in Directory.GetFiles(directory, "libSDL3.so.0*"))
+        {
+            if (NativeLibrary.TryLoad(candidate, out handle))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
