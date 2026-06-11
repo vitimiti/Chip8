@@ -14,7 +14,7 @@
       "label": "build-debug",
       "dependsOn": "restore",
       "type": "shell",
-      "command": "dotnet build -c Debug ${workspaceFolder}/Chip8/Chip8.csproj",
+      "command": "dotnet build -c Debug --no-restore ${workspaceFolder}/Chip8/Chip8.csproj",
       "group": {
         "kind": "build"
       }
@@ -23,7 +23,7 @@
       "label": "build-internal",
       "dependsOn": "restore",
       "type": "shell",
-      "command": "dotnet build -c Internal ${workspaceFolder}/Chip8/Chip8.csproj",
+      "command": "dotnet build -c Internal --no-restore ${workspaceFolder}/Chip8/Chip8.csproj",
       "group": {
         "kind": "build"
       }
@@ -32,7 +32,7 @@
       "label": "build-release",
       "dependsOn": "restore",
       "type": "shell",
-      "command": "dotnet build -c Release ${workspaceFolder}/Chip8/Chip8.csproj",
+      "command": "dotnet build -c Release --no-restore ${workspaceFolder}/Chip8/Chip8.csproj",
       "group": {
         "kind": "build"
       }
