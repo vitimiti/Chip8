@@ -141,25 +141,25 @@ Runtime publish outputs are generated for:
 - `win-arm64`
 - `linux-x64`
 - `linux-arm64`
-- `osx-arm64`
 
 Runtime packages attached to the GitHub Release:
 
 - Windows runtime packages: `.zip`
-- Linux and macOS runtime packages: `.tar.gz`
+- Linux runtime packages: `.tar.gz`
 
 Platform-specific release artifacts:
 
 - Windows installers (`.exe`) including `SDL3.dll` v3.4.10
-- Linux Flatpak (`.flatpak`) for `linux-x64` with `~/Games` filesystem access
-- macOS DMG (`.dmg`) (required for tagged releases)
-
-For macOS (`osx-arm64`), release artifacts also bundle SDL3 v3.4.10 as `libSDL3.dylib`.
+- Linux Flatpak (`.flatpak`) for `linux-x64` and `linux-arm64` with `~/Games` filesystem access
 
 SDL3 availability policy for release files:
 
 - Windows release artifacts bundle `SDL3.dll` v3.4.10.
-- macOS release artifacts bundle `libSDL3.dylib` v3.4.10.
 - Linux Flatpak installs SDL3 v3.4.10 and includes `libSDL3.so` in the package.
+
+macOS note:
+
+- macOS release artifacts are no longer published by this repository.
+- The macOS native loader fallback remains in code for users who build the project themselves.
 
 All root `*.md` files are included in published output, so users can read documentation from release assets without cloning the repository.
