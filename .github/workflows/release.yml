@@ -25,10 +25,10 @@ jobs:
 
         steps:
             - name: Checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
 
             - name: Setup .NET
-              uses: actions/setup-dotnet@v4
+              uses: actions/setup-dotnet@v5
               with:
                   dotnet-version: 10.0.x
 
@@ -81,7 +81,7 @@ jobs:
                   cp "${sdl_dll_path}" "artifacts/publish/${{ matrix.rid }}/SDL3.dll"
 
             - name: Upload publish artifact
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v5
               with:
                   name: publish-${{ matrix.rid }}
                   path: artifacts/publish/${{ matrix.rid }}
@@ -106,7 +106,7 @@ jobs:
 
             - name: Upload runtime package artifact
               if: matrix.rid != 'osx-arm64'
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v5
               with:
                   name: package-${{ matrix.rid }}
                   path: artifacts/packages/*
@@ -118,10 +118,10 @@ jobs:
 
         steps:
             - name: Checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
 
             - name: Download Windows publish artifacts
-              uses: actions/download-artifact@v4
+              uses: actions/download-artifact@v5
               with:
                   path: artifacts/publish
 
@@ -162,7 +162,7 @@ jobs:
                   }
 
             - name: Upload Windows installers
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v5
               with:
                   name: windows-installers
                   path: artifacts/installers/*.exe
@@ -185,10 +185,10 @@ jobs:
 
         steps:
             - name: Checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
 
             - name: Download Linux publish artifact
-              uses: actions/download-artifact@v4
+              uses: actions/download-artifact@v5
               with:
                   name: publish-${{ matrix.rid }}
                   path: artifacts/publish/${{ matrix.rid }}
@@ -217,7 +217,7 @@ jobs:
                   flatpak build-bundle --arch=${{ matrix.flatpak_arch }} repo chip8-${{ matrix.rid }}.flatpak io.github.vitimiti.chip8 stable
 
             - name: Upload Flatpak artifact
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v5
               with:
                   name: flatpak-${{ matrix.rid }}
                   path: chip8-${{ matrix.rid }}.flatpak
@@ -229,10 +229,10 @@ jobs:
 
         steps:
             - name: Checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
 
             - name: Download osx-arm64 publish artifact
-              uses: actions/download-artifact@v4
+              uses: actions/download-artifact@v5
               with:
                   name: publish-osx-arm64
                   path: artifacts/publish/osx-arm64
@@ -286,7 +286,7 @@ jobs:
                   tar -czf "artifacts/packages/chip8-${version}-osx-arm64.tar.gz" -C "${source_dir}" .
 
             - name: Upload osx-arm64 runtime package artifact
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v5
               with:
                   name: package-osx-arm64
                   path: artifacts/packages/*.tar.gz
@@ -326,7 +326,7 @@ jobs:
                   hdiutil create -volname "Chip8" -srcfolder dist/Chip8.app -ov -format UDZO chip8-osx-arm64.dmg
 
             - name: Upload DMG artifact
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v5
               with:
                   name: macos-dmg-osx-arm64
                   path: chip8-osx-arm64.dmg
@@ -342,31 +342,31 @@ jobs:
 
         steps:
             - name: Download publish artifacts
-              uses: actions/download-artifact@v4
+              uses: actions/download-artifact@v5
               with:
                   pattern: publish-*
                   path: release-assets/publish
 
             - name: Download runtime packages
-              uses: actions/download-artifact@v4
+              uses: actions/download-artifact@v5
               with:
                   pattern: package-*
                   path: release-assets/packages
 
             - name: Download Windows installers
-              uses: actions/download-artifact@v4
+              uses: actions/download-artifact@v5
               with:
                   name: windows-installers
                   path: release-assets/windows-installers
 
             - name: Download Flatpak bundle
-              uses: actions/download-artifact@v4
+              uses: actions/download-artifact@v5
               with:
                   pattern: flatpak-*
                   path: release-assets/flatpak
 
             - name: Download macOS DMG
-              uses: actions/download-artifact@v4
+              uses: actions/download-artifact@v5
               with:
                   name: macos-dmg-osx-arm64
                   path: release-assets/macos
