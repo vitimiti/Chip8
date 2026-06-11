@@ -18,6 +18,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Runtime.InteropServices;
 
 namespace Chip8.Sdl3.NativeImports;
@@ -31,21 +32,60 @@ internal static partial class Ffi
 {
     private const string LibSdl3 = "SDL3";
 
-    static Ffi() =>
-        NativeLibrary.SetDllImportResolver(
-            typeof(Ffi).Assembly,
-            (name, assembly, path) =>
-                NativeLibrary.Load(
-                    name switch
-                    {
-                        LibSdl3 when OperatingSystem.IsWindows() => "SDL3.dll",
-                        LibSdl3 when OperatingSystem.IsLinux() || OperatingSystem.IsFreeBSD() =>
-                            "libSDL3.so.0",
-                        LibSdl3 when OperatingSystem.IsMacOS() => "libSDL3.0.dylib",
-                        _ => name,
-                    },
-                    assembly,
-                    path
-                )
-        );
+    static Ffi() => NativeLibrary.SetDllImportResolver(typeof(Ffi).Assembly, ResolveLibrary);
+
+    [SuppressMessage(
+        "Style",
+        "IDE0046:Convert to conditional expression",
+        Justification = "Consecutive ternary operators would be less readable."
+    )]
+    private static nint ResolveLibrary(string name, Assembly assembly, DllImportSearchPath? path)
+    {
+        if (name != LibSdl3)
+        {
+            return NativeLibrary.Load(name, assembly, path);
+        }
+
+        if (OperatingSystem.IsWindows())
+        {
+            return NativeLibrary.Load("SDL3.dll", assembly, path);
+        }
+
+        if (OperatingSystem.IsLinux() || OperatingSystem.IsFreeBSD())
+        {
+            if (NativeLibrary.TryLoad("/app/lib/libSDL3.so.0", out var handle))
+            {
+                return handle;
+            }
+
+            if (NativeLibrary.TryLoad("libSDL3.so.0", out handle))
+            {
+                return handle;
+            }
+
+            if (NativeLibrary.TryLoad("libSDL3.so.0.4.10", out handle))
+            {
+                return handle;
+            }
+
+            return NativeLibrary.Load("libSDL3.so.0", assembly, path);
+        }
+
+        if (OperatingSystem.IsMacOS())
+        {
+            if (NativeLibrary.TryLoad("libSDL3.dylib", out var handle))
+            {
+                return handle;
+            }
+
+            if (NativeLibrary.TryLoad("libSDL3.0.dylib", out handle))
+            {
+                return handle;
+            }
+
+            return NativeLibrary.Load("libSDL3.dylib", assembly, path);
+        }
+
+        return NativeLibrary.Load(name, assembly, path);
+    }
 }
